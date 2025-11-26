@@ -30,6 +30,14 @@ yarn-debug.log*
 yarn-error.log*
 .pnpm-debug.log*
 
+# local env files
+.env*.local
+.env
+
+# debug files
+local_api_response*.json
+api_response.json
+
 # env files (can opt-in for committing if needed)
 .env*
 
