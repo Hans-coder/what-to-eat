@@ -9,8 +9,8 @@ export async function GET(request: Request) {
     const { searchParams } = new URL(request.url);
     const lat = searchParams.get('lat') || '25.0117'; // Default: Banqiao
     const lng = searchParams.get('lng') || '121.4651';
-    const radius = searchParams.get('radius') || '1000';
-    const keyword = searchParams.get('keyword') || 'restaurant';
+    const radius = searchParams.get('radius') || '2000'; // Increased default radius
+    const keyword = searchParams.get('keyword') || ''; // Remove default keyword to broaden results
 
     // Fallback to mock data if no API key
     if (!apiKey) {
@@ -27,7 +27,8 @@ export async function GET(request: Request) {
 
         // Fetch up to 3 pages (60 results)
         do {
-            let url = `https://maps.googleapis.com/maps/api/place/nearbysearch/json?location=${lat},${lng}&radius=${radius}&type=restaurant&keyword=${keyword}&language=zh-TW&key=${apiKey}`;
+            // Use type=food for broader results, remove keyword restriction
+            let url = `https://maps.googleapis.com/maps/api/place/nearbysearch/json?location=${lat},${lng}&radius=${radius}&type=food&language=zh-TW&key=${apiKey}`;
 
             if (nextPageToken) {
                 url = `https://maps.googleapis.com/maps/api/place/nearbysearch/json?pagetoken=${nextPageToken}&key=${apiKey}`;
@@ -57,7 +58,7 @@ export async function GET(request: Request) {
         }
 
         const realRestaurants: Restaurant[] = allResults.map((place: any) => {
-            const mockDetails = generateMockDetails(place.place_id, place.name);
+            const mockDetails = generateMockDetails(place.place_id, place.name, place.types);
 
             // Calculate distance (simple approximation)
             const R = 6371e3; // metres

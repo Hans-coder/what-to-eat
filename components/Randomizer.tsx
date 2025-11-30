@@ -12,27 +12,33 @@ export function Randomizer({ restaurants, onSelect }: RandomizerProps) {
     const [isSpinning, setIsSpinning] = useState(false);
 
     const handleRandomize = () => {
-        if (!budget) return;
-
         setIsSpinning(true);
 
         // Simulate spinning effect
         setTimeout(() => {
-            const budgetNum = parseInt(budget);
-            // Simple heuristic for budget mapping: $ < 150, $$ < 300, $$$ < 600, $$$$ >= 600
-            const affordableRestaurants = restaurants.filter(r => {
-                if (r.priceLevel === '$') return budgetNum >= 100;
-                if (r.priceLevel === '$$') return budgetNum >= 300;
-                if (r.priceLevel === '$$$') return budgetNum >= 600;
-                return budgetNum >= 1000;
-            });
+            let pool = restaurants;
 
-            const pool = affordableRestaurants.length > 0 ? affordableRestaurants : restaurants;
+            // Optional budget filtering if user entered something
+            if (budget) {
+                const budgetNum = parseInt(budget);
+                // More lenient budget filtering
+                const affordable = restaurants.filter(r => {
+                    if (r.priceLevel === '$') return true; // Always include cheap options
+                    if (r.priceLevel === '$$') return budgetNum >= 300;
+                    if (r.priceLevel === '$$$') return budgetNum >= 600;
+                    return budgetNum >= 1000;
+                });
+                if (affordable.length > 0) {
+                    pool = affordable;
+                }
+            }
+
+            // True random selection
             const random = pool[Math.floor(Math.random() * pool.length)];
 
             onSelect(random);
             setIsSpinning(false);
-        }, 1500);
+        }, 1000); // Faster spin
     };
 
     return (

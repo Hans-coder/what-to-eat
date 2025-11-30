@@ -40,7 +40,7 @@ export interface Restaurant {
 }
 
 // Helper to generate consistent mock details for real API data
-export function generateMockDetails(id: string, name: string): Partial<Restaurant> {
+export function generateMockDetails(id: string, name: string, googleTypes: string[] = []): Partial<Restaurant> {
     // Use a simple hash of the ID to make "random" values consistent for the same restaurant
     const hash = id.split('').reduce((acc, char) => acc + char.charCodeAt(0), 0);
     const pseudoRandom = (seed: number) => {
@@ -49,9 +49,20 @@ export function generateMockDetails(id: string, name: string): Partial<Restauran
     };
 
     const cuisines = ['台式', '日式', '美式', '義式', '韓式', '泰式'];
-    const types: Category[] = ['早餐', '午餐', '晚餐', '點心', '甜點'];
     const atmospheres = ['熱鬧', '安靜', '浪漫', '適合家庭', '復古', '現代'];
     const paymentMethods = ['現金', '信用卡', 'LinePay', 'ApplePay', '街口支付'];
+
+    // Smart Category Mapping
+    let type: Category = '午餐'; // Default
+    if (googleTypes.includes('bakery') || googleTypes.includes('cafe') || name.includes('咖啡') || name.includes('甜點')) {
+        type = '甜點';
+    } else if (googleTypes.includes('bar') || googleTypes.includes('night_club') || name.includes('居酒屋') || name.includes('酒吧')) {
+        type = '晚餐';
+    } else if (name.includes('早餐') || name.includes('早午餐')) {
+        type = '早餐';
+    } else if (pseudoRandom(0) > 0.7) {
+        type = '晚餐';
+    }
 
     const mockMenus: MenuItem[] = [
         { name: '招牌套餐', price: 200, deliveryPrice: 240, imageUrl: 'https://images.unsplash.com/photo-1546069901-ba9599a7e63c?auto=format&fit=crop&w=400&q=80' },
@@ -93,7 +104,7 @@ export function generateMockDetails(id: string, name: string): Partial<Restauran
 
     return {
         cuisine: selectedCuisine,
-        type: types[Math.floor(pseudoRandom(2) * types.length)],
+        type: type,
         priceLevel: ['$', '$$', '$$$', '$$$$'][Math.floor(pseudoRandom(3) * 4)] as PriceLevel,
         mustTry: mustTry,
         waitTime: Math.floor(pseudoRandom(5) * 60),

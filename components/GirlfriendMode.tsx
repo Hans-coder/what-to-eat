@@ -11,19 +11,24 @@ export function GirlfriendMode({ restaurants, onSelect }: GirlfriendModeProps) {
     const [shuffledChoices, setShuffledChoices] = useState<Restaurant[]>([]);
 
     // Filter for good atmosphere or dessert
-    const safeChoices = useMemo(() => restaurants.filter(r =>
-        r.atmosphere.includes('浪漫') ||
-        r.atmosphere.includes('安靜') ||
-        r.type === '甜點'
-    ), [restaurants]);
-
-    // Initial shuffle
+    // Initial shuffle - ensure it runs only when restaurants change
     useEffect(() => {
-        setShuffledChoices(safeChoices.slice(0, 4));
-    }, [safeChoices]);
+        if (restaurants.length > 0) {
+            handleShuffle();
+        }
+    }, [restaurants]);
 
     const handleShuffle = () => {
-        const shuffled = [...safeChoices].sort(() => 0.5 - Math.random());
+        // Filter first
+        const safe = restaurants.filter(r =>
+            r.atmosphere.includes('浪漫') ||
+            r.atmosphere.includes('安靜') ||
+            r.type === '甜點' ||
+            r.rating >= 4.0 // Also include high rated places
+        );
+
+        // Then shuffle
+        const shuffled = [...safe].sort(() => 0.5 - Math.random());
         setShuffledChoices(shuffled.slice(0, 4));
     };
 

@@ -1,30 +1,21 @@
 'use client';
 
-import { useState } from 'react';
 import Image, { ImageProps } from 'next/image';
-import { UtensilsCrossed } from 'lucide-react';
+import { useState } from 'react';
 
-export function SafeImage({ src, alt, ...props }: ImageProps) {
-    const [error, setError] = useState(false);
+interface SafeImageProps extends ImageProps {
+    fallbackSrc?: string;
+}
 
-    if (error || !src) {
-        return (
-            <div className={`bg-slate-100 flex flex-col items-center justify-center text-slate-400 ${props.className}`}>
-                <div className="bg-slate-200 p-3 rounded-full mb-2">
-                    <UtensilsCrossed size={24} className="text-slate-400" />
-                </div>
-                <span className="text-xs font-bold text-slate-500">圖片準備中</span>
-                <span className="text-[10px] text-slate-400">Image Coming Soon</span>
-            </div>
-        );
-    }
+export function SafeImage({ src, alt, fallbackSrc = 'https://images.unsplash.com/photo-1517248135467-4c7edcad34c4?w=800&q=80', ...props }: SafeImageProps) {
+    const [imgSrc, setImgSrc] = useState(src);
 
     return (
         <Image
-            src={src}
-            alt={alt}
-            onError={() => setError(true)}
             {...props}
+            src={imgSrc}
+            alt={alt}
+            onError={() => setImgSrc(fallbackSrc)}
         />
     );
 }
