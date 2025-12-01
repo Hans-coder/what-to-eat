@@ -6,7 +6,7 @@ const GOOGLE_MAPS_API_KEY = process.env.NEXT_PUBLIC_GOOGLE_MAPS_API_KEY;
 export async function POST(request: Request) {
     try {
         const body = await request.json();
-        const { messages, lat, lng } = body;
+        const { messages, lat, lng, priceLevel } = body;
 
         if (!messages || !Array.isArray(messages) || messages.length === 0 || !lat || !lng) {
             return NextResponse.json({ error: 'Missing required parameters' }, { status: 400 });
@@ -25,7 +25,9 @@ export async function POST(request: Request) {
 
         if (GOOGLE_MAPS_API_KEY) {
             const searchPromises = analysis.foodTypes.slice(0, 2).map(async (keyword) => {
-                const url = `https://maps.googleapis.com/maps/api/place/nearbysearch/json?location=${lat},${lng}&radius=1500&keyword=${encodeURIComponent(keyword)}&language=zh-TW&key=${GOOGLE_MAPS_API_KEY}&type=restaurant`;
+                // Add maxprice parameter if priceLevel is set
+                const priceParam = priceLevel ? `&maxprice=${priceLevel}` : '';
+                const url = `https://maps.googleapis.com/maps/api/place/nearbysearch/json?location=${lat},${lng}&radius=1500&keyword=${encodeURIComponent(keyword)}&language=zh-TW&key=${GOOGLE_MAPS_API_KEY}&type=restaurant${priceParam}`;
                 const res = await fetch(url);
                 const data = await res.json();
                 return data.results || [];
@@ -43,9 +45,15 @@ export async function POST(request: Request) {
             console.warn("No Google Maps API Key. Skipping restaurant search.");
         }
 
-        // 3. Filter and Sort (Simple logic for MVP: Rating > 4.0, Open Now)
+        // 3. Filter and Sort (Simple logic for MVP: Rating >= 4.0, Open Now)
+        // Also filter by price_level if specified
         const recommendedRestaurants = allRestaurants
-            .filter((r: any) => r.rating >= 4.0 && r.business_status === 'OPERATIONAL')
+            .filter((r: any) => {
+                const ratingOk = r.rating >= 4.0;
+                const statusOk = r.business_status === 'OPERATIONAL';
+                const priceOk = !priceLevel || !r.price_level || r.price_level <= priceLevel;
+                return ratingOk && statusOk && priceOk;
+            })
             .slice(0, 3) // Take top 3
             .map((r: any) => ({
                 id: r.place_id,
@@ -56,6 +64,7 @@ export async function POST(request: Request) {
                 types: r.types,
                 isOpen: r.opening_hours?.open_now,
                 photoReference: r.photos?.[0]?.photo_reference,
+                priceLevel: r.price_level,
             }));
 
         return NextResponse.json({

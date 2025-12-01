@@ -24,17 +24,41 @@ export const LocationPicker = ({ isOpen, onClose, onSelect }: LocationPickerProp
         debounce: 300,
     });
 
-    const handleSelect = async (address: string) => {
-        setValue(address, false);
+    const [error, setError] = useState<string | null>(null);
+
+    const handleSelect = async (description: string, placeId?: string) => {
+        setValue(description, false);
         clearSuggestions();
+        setError(null);
 
         try {
-            const results = await getGeocode({ address });
-            const { lat, lng } = await getLatLng(results[0]);
-            onSelect({ lat, lng, address });
-            onClose();
+            // If placeId is provided (from suggestion click), use it directly
+            if (placeId) {
+                const results = await getGeocode({ placeId });
+                const { lat, lng } = await getLatLng(results[0]);
+                onSelect({ lat, lng, address: description });
+                onClose();
+                return;
+            }
+
+            // Otherwise, try to use the first suggestion from the list
+            const targetPlaceId = data.length > 0 ? data[0].place_id : null;
+
+            if (targetPlaceId) {
+                const results = await getGeocode({ placeId: targetPlaceId });
+                const { lat, lng } = await getLatLng(results[0]);
+                onSelect({ lat, lng, address: description });
+                onClose();
+            } else {
+                // Fallback: use address-based geocoding (requires Geocoding API)
+                const results = await getGeocode({ address: description });
+                const { lat, lng } = await getLatLng(results[0]);
+                onSelect({ lat, lng, address: description });
+                onClose();
+            }
         } catch (error) {
             console.error("Error: ", error);
+            setError("無法取得地點資訊。請選擇建議清單中的地點，或確認 Geocoding API 已啟用。");
         }
     };
 
@@ -56,22 +80,40 @@ export const LocationPicker = ({ isOpen, onClose, onSelect }: LocationPickerProp
                         <input
                             value={value}
                             onChange={(e) => setValue(e.target.value)}
+                            onKeyDown={(e) => {
+                                if (e.key === 'Enter') {
+                                    handleSelect(value);
+                                }
+                            }}
                             disabled={!ready}
-                            placeholder="搜尋地點..."
-                            className="w-full bg-gray-50 border border-gray-200 rounded-xl py-3 pl-10 pr-4 focus:outline-none focus:ring-2 focus:ring-[#FF8BA7] text-[#4A403A]"
+                            placeholder="搜尋地點 (輸入後按 Enter 或選擇建議)"
+                            className="w-full bg-gray-50 border border-gray-200 rounded-xl py-3 pl-10 pr-12 focus:outline-none focus:ring-2 focus:ring-orange-400 text-[#4A403A]"
                             autoFocus
                         />
+                        <button
+                            onClick={() => handleSelect(value)}
+                            className="absolute right-2 top-1/2 -translate-y-1/2 p-1.5 bg-orange-500 text-white rounded-lg hover:bg-orange-600 transition-colors"
+                        >
+                            <Search size={16} />
+                        </button>
                     </div>
+
+                    {error && (
+                        <div className="mt-3 p-3 bg-red-50 text-red-500 text-sm rounded-xl flex items-center gap-2">
+                            <X size={14} />
+                            {error}
+                        </div>
+                    )}
 
                     <div className="mt-4 max-h-[300px] overflow-y-auto">
                         {status === "OK" && data.map(({ place_id, description }) => (
                             <button
                                 key={place_id}
-                                onClick={() => handleSelect(description)}
-                                className="w-full text-left p-3 hover:bg-pink-50 rounded-xl transition-colors flex items-center gap-3 group"
+                                onClick={() => handleSelect(description, place_id)}
+                                className="w-full text-left p-3 hover:bg-orange-50 rounded-xl transition-colors flex items-center gap-3 group"
                             >
                                 <div className="bg-gray-100 p-2 rounded-full group-hover:bg-white transition-colors">
-                                    <MapPin size={16} className="text-gray-500 group-hover:text-[#FF6B8B]" />
+                                    <MapPin size={16} className="text-gray-500 group-hover:text-orange-500" />
                                 </div>
                                 <span className="text-[#4A403A] text-sm font-medium line-clamp-1">{description}</span>
                             </button>

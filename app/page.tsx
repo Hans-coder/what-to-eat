@@ -1,7 +1,7 @@
 'use client';
 
 import { useState, useEffect, useRef } from 'react';
-import { MapPin, Send, Sparkles, Navigation, Loader2 } from 'lucide-react';
+import { MapPin, Send, Sparkles, Navigation, Loader2, Cat } from 'lucide-react';
 import { LocationPicker } from '@/components/LocationPicker';
 import { SafeImage } from '@/components/SafeImage';
 
@@ -37,6 +37,7 @@ export default function Home() {
   const [location, setLocation] = useState<LocationState | null>(null);
   const [isLoading, setIsLoading] = useState(false);
   const [isLocationPickerOpen, setIsLocationPickerOpen] = useState(false);
+  const [priceLevel, setPriceLevel] = useState<number | null>(null); // 1-4 for $-$$$$
   const messagesEndRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
@@ -90,7 +91,8 @@ export default function Home() {
         body: JSON.stringify({
           messages: newMessages,
           lat: location.lat,
-          lng: location.lng
+          lng: location.lng,
+          priceLevel: priceLevel
         }),
       });
 
@@ -98,7 +100,7 @@ export default function Home() {
       setMessages(prev => [...prev, { role: 'ai', recommendation: data }]);
     } catch (error) {
       console.error("Error fetching recommendations:", error);
-      setMessages(prev => [...prev, { role: 'ai', text: "發生錯誤，請稍後再試。" }]);
+      setMessages(prev => [...prev, { role: 'ai', text: "喵嗚... 發生錯誤了，請稍後再試。 😿" }]);
     } finally {
       setIsLoading(false);
     }
@@ -127,18 +129,18 @@ export default function Home() {
 
   return (
     <div className="min-h-screen bg-white font-sans text-[#4A403A] pb-24">
-      <header className="sticky top-0 z-10 bg-white/80 backdrop-blur-md border-b border-pink-100">
+      <header className="sticky top-0 z-10 bg-white/80 backdrop-blur-md border-b border-orange-100">
         <div className="max-w-md mx-auto px-4 py-3 flex items-center justify-between">
           <div className="flex items-center gap-2">
-            <div className="bg-[#FF6B8B] p-2 rounded-xl">
-              <Sparkles className="text-white" size={20} />
+            <div className="bg-orange-500 p-2 rounded-xl">
+              <Cat className="text-white" size={20} />
             </div>
-            <h1 className="font-bold text-xl tracking-tight text-[#FF6B8B]">MoodEat</h1>
+            <h1 className="font-bold text-xl tracking-tight text-orange-500">MoodEat 橘貓食堂</h1>
           </div>
 
           <button
             onClick={() => setIsLocationPickerOpen(true)}
-            className="flex items-center gap-1.5 bg-pink-50 px-3 py-1.5 rounded-full text-xs font-medium text-[#FF6B8B] hover:bg-pink-100 transition-colors"
+            className="flex items-center gap-1.5 bg-orange-50 px-3 py-1.5 rounded-full text-xs font-medium text-orange-500 hover:bg-orange-100 transition-colors"
           >
             <MapPin size={14} />
             <span className="max-w-[120px] truncate">
@@ -156,43 +158,45 @@ export default function Home() {
 
       <main className="max-w-md mx-auto p-4 space-y-6">
         <div className="flex gap-3">
-          <div className="w-8 h-8 rounded-full bg-gradient-to-br from-[#FF8BA7] to-[#FF6B8B] flex items-center justify-center text-white shrink-0">
-            <Sparkles size={16} />
+          <div className="w-10 h-10 rounded-full bg-gradient-to-br from-orange-300 to-orange-500 flex items-center justify-center text-white shrink-0 shadow-sm">
+            <Cat size={20} />
           </div>
-          <div className="bg-white p-4 rounded-2xl rounded-tl-none shadow-sm border border-pink-50 text-[#4A403A]">
-            <p>嗨！今天心情怎麼樣？跟我說說，我幫你決定吃什麼！</p>
-            <p className="text-xs text-[#8C8077] mt-2">試試看：「今天好累」、「跟女友吵架」、「想吃點熱的」</p>
+          <div className="bg-white p-4 rounded-2xl rounded-tl-none shadow-sm border border-orange-100 text-[#4A403A]">
+            <p>喵！今天心情怎麼樣？想吃什麼好料的？跟我說說，本喵幫你決定！ 🐾</p>
+            <p className="text-xs text-orange-400 mt-2">試試看：「今天好累」、「跟女友吵架」、「想吃點熱的」</p>
           </div>
         </div>
 
         {messages.map((msg, index) => (
           <div key={index} className={`flex gap-3 ${msg.role === 'user' ? 'flex-row-reverse' : ''}`}>
             {msg.role === 'ai' && (
-              <div className="w-8 h-8 rounded-full bg-gradient-to-br from-[#FF8BA7] to-[#FF6B8B] flex items-center justify-center text-white shrink-0">
-                <Sparkles size={16} />
+              <div className="w-10 h-10 rounded-full bg-gradient-to-br from-orange-300 to-orange-500 flex items-center justify-center text-white shrink-0 shadow-sm">
+                <Cat size={20} />
               </div>
             )}
 
             {msg.role === 'user' ? (
-              <div className="bg-[#FF8BA7] p-4 rounded-2xl rounded-tr-none shadow-sm text-white">
+              <div className="bg-orange-500 p-4 rounded-2xl rounded-tr-none shadow-sm text-white">
                 <p>{msg.text}</p>
               </div>
             ) : (
               <div className="space-y-4 w-full">
                 {msg.text && (
-                  <div className="bg-white p-4 rounded-2xl rounded-tl-none shadow-sm border border-pink-50 text-[#4A403A]">
+                  <div className="bg-white p-4 rounded-2xl rounded-tl-none shadow-sm border border-orange-100 text-[#4A403A]">
                     {msg.text}
                   </div>
                 )}
                 {msg.recommendation && (
                   <div className="space-y-4 animate-in fade-in slide-in-from-bottom-4 duration-500">
-                    <div className="bg-white p-4 rounded-2xl rounded-tl-none shadow-sm border border-pink-50 text-[#4A403A]">
-                      <p className="font-medium mb-1 text-[#FF6B8B]">{msg.recommendation.mood} Mode</p>
+                    <div className="bg-white p-4 rounded-2xl rounded-tl-none shadow-sm border border-orange-100 text-[#4A403A]">
+                      <p className="font-medium mb-1 text-orange-500 flex items-center gap-1">
+                        <Cat size={14} /> {msg.recommendation.mood} Mode
+                      </p>
                       <p>{msg.recommendation.reason}</p>
 
                       {msg.recommendation.followUpQuestion && (
-                        <div className="mt-3 pt-3 border-t border-pink-100">
-                          <p className="font-bold text-[#FF6B8B] flex items-center gap-2">
+                        <div className="mt-3 pt-3 border-t border-orange-100">
+                          <p className="font-bold text-orange-500 flex items-center gap-2">
                             <Sparkles size={14} />
                             {msg.recommendation.followUpQuestion}
                           </p>
@@ -202,46 +206,72 @@ export default function Home() {
                       {msg.recommendation.foodTypes && msg.recommendation.foodTypes.length > 0 && (
                         <div className="mt-3 flex flex-wrap gap-2">
                           {msg.recommendation.foodTypes.map(t => (
-                            <span key={t} className="text-xs bg-pink-50 text-[#FF8BA7] px-2 py-1 rounded-full">#{t}</span>
+                            <span key={t} className="text-xs bg-orange-50 text-orange-500 px-2 py-1 rounded-full">#{t}</span>
                           ))}
                         </div>
                       )}
                     </div>
-
+                    {/* Restaurant Cards */}
                     {msg.recommendation.restaurants && msg.recommendation.restaurants.length > 0 && (
-                      <div className="grid gap-4">
-                        {msg.recommendation.restaurants.map(r => (
-                          <div key={r.id} className="bg-white rounded-2xl overflow-hidden shadow-sm border border-pink-50 hover:shadow-md transition-all">
-                            <div className="relative h-32">
-                              <SafeImage
-                                src={getPhotoUrl(r.photoReference)}
-                                alt={r.name}
-                                fill
-                                className="object-cover"
-                              />
-                              <div className="absolute top-2 right-2 bg-white/90 backdrop-blur px-2 py-1 rounded-full text-xs font-bold text-[#4A403A]">
-                                ★ {r.rating} ({r.user_ratings_total})
+                      <div className="space-y-4">
+                        {/* One Pick Button */}
+                        {msg.recommendation.restaurants.length > 1 && (
+                          <button
+                            onClick={() => {
+                              if (!msg.recommendation?.restaurants) return;
+                              const randomIndex = Math.floor(Math.random() * msg.recommendation.restaurants.length);
+                              const selected = msg.recommendation.restaurants[randomIndex];
+                              // Scroll to the selected card
+                              const cardElement = document.getElementById(`restaurant-${selected.id}`);
+                              if (cardElement) {
+                                cardElement.scrollIntoView({ behavior: 'smooth', block: 'center' });
+                                cardElement.classList.add('ring-4', 'ring-orange-400', 'ring-offset-2');
+                                setTimeout(() => {
+                                  cardElement.classList.remove('ring-4', 'ring-orange-400', 'ring-offset-2');
+                                }, 2000);
+                              }
+                            }}
+                            className="w-full bg-gradient-to-r from-orange-400 to-orange-500 text-white py-3 px-4 rounded-xl font-bold shadow-lg hover:shadow-xl transition-all flex items-center justify-center gap-2 active:scale-95"
+                          >
+                            <Sparkles size={18} />
+                            喵！幫我選一個！ 🎲
+                          </button>
+                        )}
+
+                        <div className="grid gap-4">
+                          {msg.recommendation.restaurants.map(r => (
+                            <div id={`restaurant-${r.id}`} key={r.id} className="bg-white rounded-2xl overflow-hidden shadow-sm border border-orange-100 hover:shadow-md transition-all group">
+                              <div className="relative h-32 overflow-hidden">
+                                <SafeImage
+                                  src={getPhotoUrl(r.photoReference)}
+                                  alt={r.name}
+                                  fill
+                                  className="object-cover group-hover:scale-105 transition-transform duration-500"
+                                />
+                                <div className="absolute top-2 right-2 bg-white/90 backdrop-blur px-2 py-1 rounded-full text-xs font-bold text-[#4A403A] shadow-sm">
+                                  ★ {r.rating} ({r.user_ratings_total})
+                                </div>
+                              </div>
+                              <div className="p-4">
+                                <h3 className="font-bold text-lg text-[#4A403A] mb-1 group-hover:text-orange-500 transition-colors">{r.name}</h3>
+                                <p className="text-sm text-[#8C8077] mb-3 line-clamp-1">{r.vicinity}</p>
+                                <div className="flex items-center justify-between">
+                                  <span className={`text-xs px-2.5 py-1 rounded-full font-medium ${r.isOpen ? 'bg-green-100 text-green-700' : 'bg-gray-100 text-gray-500'}`}>
+                                    {r.isOpen ? '營業中' : '休息中'}
+                                  </span>
+                                  <a
+                                    href={`https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(r.name)}&query_place_id=${r.id}`}
+                                    target="_blank"
+                                    rel="noopener noreferrer"
+                                    className="text-xs font-bold text-white bg-orange-400 px-3 py-1.5 rounded-full flex items-center gap-1 hover:bg-orange-500 transition-colors shadow-sm"
+                                  >
+                                    導航 <Navigation size={12} />
+                                  </a>
+                                </div>
                               </div>
                             </div>
-                            <div className="p-4">
-                              <h3 className="font-bold text-lg text-[#4A403A] mb-1">{r.name}</h3>
-                              <p className="text-sm text-[#8C8077] mb-2">{r.vicinity}</p>
-                              <div className="flex items-center justify-between">
-                                <span className={`text-xs px-2 py-1 rounded-full ${r.isOpen ? 'bg-green-100 text-green-700' : 'bg-gray-100 text-gray-500'}`}>
-                                  {r.isOpen ? '營業中' : '休息中'}
-                                </span>
-                                <a
-                                  href={`https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(r.name)}&query_place_id=${r.id}`}
-                                  target="_blank"
-                                  rel="noopener noreferrer"
-                                  className="text-xs font-bold text-[#FF8BA7] flex items-center gap-1"
-                                >
-                                  導航 <Navigation size={12} />
-                                </a>
-                              </div>
-                            </div>
-                          </div>
-                        ))}
+                          ))}
+                        </div>
                       </div>
                     )}
                   </div>
@@ -253,54 +283,93 @@ export default function Home() {
 
         {isLoading && (
           <div className="flex gap-3">
-            <div className="w-8 h-8 rounded-full bg-gradient-to-br from-[#FF8BA7] to-[#FF6B8B] flex items-center justify-center text-white shrink-0">
-              <Sparkles size={16} />
+            <div className="w-10 h-10 rounded-full bg-gradient-to-br from-orange-300 to-orange-500 flex items-center justify-center text-white shrink-0 shadow-sm animate-pulse">
+              <Cat size={20} />
             </div>
-            <div className="bg-white p-4 rounded-2xl rounded-tl-none shadow-sm border border-pink-50 text-[#4A403A] flex items-center gap-2">
-              <div className="w-2 h-2 bg-[#FF8BA7] rounded-full animate-bounce" />
-              <div className="w-2 h-2 bg-[#FF8BA7] rounded-full animate-bounce [animation-delay:0.2s]" />
-              <div className="w-2 h-2 bg-[#FF8BA7] rounded-full animate-bounce [animation-delay:0.4s]" />
+            <div className="bg-white p-4 rounded-2xl rounded-tl-none shadow-sm border border-orange-100 text-[#4A403A] flex items-center gap-2">
+              <span className="text-sm font-medium text-orange-400">橘貓思考中...</span>
+              <div className="flex gap-1">
+                <div className="w-2 h-2 bg-orange-400 rounded-full animate-bounce" />
+                <div className="w-2 h-2 bg-orange-400 rounded-full animate-bounce [animation-delay:0.2s]" />
+                <div className="w-2 h-2 bg-orange-400 rounded-full animate-bounce [animation-delay:0.4s]" />
+              </div>
             </div>
           </div>
         )}
       </main>
 
       <div className="fixed bottom-0 left-0 right-0">
-        <div className="max-w-md mx-auto p-4 bg-white border-t border-pink-100">
+        <div className="max-w-md mx-auto p-4 bg-white border-t border-orange-100">
+          {/* Budget Selector */}
+          <div className="mb-3">
+            <div className="flex items-center justify-between mb-2">
+              <span className="text-xs font-medium text-gray-500">預算範圍</span>
+              {priceLevel && (
+                <button
+                  onClick={() => setPriceLevel(null)}
+                  className="text-xs text-orange-400 hover:text-orange-500"
+                >
+                  清除
+                </button>
+              )}
+            </div>
+            <div className="flex gap-2">
+              {[
+                { level: 1, label: '$', desc: '便宜' },
+                { level: 2, label: '$$', desc: '中等' },
+                { level: 3, label: '$$$', desc: '昂貴' },
+                { level: 4, label: '$$$$', desc: '奢華' },
+              ].map((budget) => (
+                <button
+                  key={budget.level}
+                  onClick={() => setPriceLevel(budget.level === priceLevel ? null : budget.level)}
+                  className={`flex-1 py-2 px-3 rounded-xl text-sm font-bold transition-all ${priceLevel === budget.level
+                      ? 'bg-orange-500 text-white shadow-md'
+                      : 'bg-orange-50 text-orange-400 hover:bg-orange-100'
+                    }`}
+                >
+                  <div>{budget.label}</div>
+                  <div className="text-xs font-normal opacity-75">{budget.desc}</div>
+                </button>
+              ))}
+            </div>
+          </div>
+
+          {/* Quick Actions */}
           <div className="flex gap-2 overflow-x-auto pb-3 no-scrollbar">
             {[
-              { label: '我好累 😴', text: '我今天好累，想吃點簡單的' },
-              { label: '慶祝 🎉', text: '今天要慶祝，想吃好一點的！' },
-              { label: '隨便吃 🎲', text: '隨便吃，有什麼推薦的？' },
+              { label: '我好累 😴', text: '喵... 我今天好累，想吃點簡單的' },
+              { label: '慶祝 🎉', text: '今天要慶祝！吃頓好的！' },
+              { label: '隨便吃 🐟', text: '隨便吃，有什麼推薦的罐罐...啊不是，是餐廳？' },
               { label: '便宜 💰', text: '月底了，想吃便宜一點的' },
               { label: '想吃辣 🌶️', text: '突然想吃辣的！' },
             ].map((action) => (
               <button
                 key={action.label}
                 onClick={() => handleSend(action.text)}
-                className="whitespace-nowrap px-3 py-1.5 bg-pink-50 text-[#FF6B8B] rounded-full text-sm font-medium hover:bg-[#FF6B8B] hover:text-white transition-colors"
+                className="whitespace-nowrap px-3 py-1.5 bg-orange-50 text-orange-500 rounded-full text-sm font-medium hover:bg-orange-500 hover:text-white transition-colors"
               >
                 {action.label}
               </button>
             ))}
           </div>
 
-          <div className="flex gap-2">
+          <div className="flex gap-2 items-center">
             <input
               type="text"
               value={inputText}
               onChange={(e) => setInputText(e.target.value)}
               onKeyDown={handleKeyDown}
-              placeholder="今天心情怎麼樣？想吃什麼？"
-              className="flex-1 bg-pink-50 border-none rounded-full py-3 pl-5 pr-12 text-[#4A403A] placeholder:text-pink-300 focus:ring-2 focus:ring-[#FF8BA7] focus:outline-none"
+              placeholder="跟橘貓說說你想吃什麼..."
+              className="flex-1 bg-orange-50 border-none rounded-full py-3 pl-5 pr-12 text-[#4A403A] placeholder:text-orange-300 focus:ring-2 focus:ring-orange-400 focus:outline-none h-12"
               disabled={isLoading}
             />
             <button
               onClick={() => handleSend()}
               disabled={isLoading || !inputText.trim()}
-              className="p-2 bg-[#FF8BA7] text-white rounded-full hover:bg-[#FF6B8B] disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
+              className="h-12 w-12 flex items-center justify-center bg-orange-500 text-white rounded-full hover:bg-orange-600 disabled:opacity-50 disabled:cursor-not-allowed transition-colors shadow-sm shrink-0"
             >
-              {isLoading ? <Loader2 className="animate-spin" size={18} /> : <Send size={18} />}
+              {isLoading ? <Loader2 className="animate-spin" size={20} /> : <Send size={20} />}
             </button>
           </div>
         </div>
