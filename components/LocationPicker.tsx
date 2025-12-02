@@ -26,6 +26,28 @@ export const LocationPicker = ({ isOpen, onClose, onSelect }: LocationPickerProp
 
     const [error, setError] = useState<string | null>(null);
 
+    const getCurrentLocation = () => {
+        setError(null);
+        if (navigator.geolocation) {
+            navigator.geolocation.getCurrentPosition(
+                (position) => {
+                    onSelect({
+                        lat: position.coords.latitude,
+                        lng: position.coords.longitude,
+                        address: '目前位置'
+                    });
+                    onClose();
+                },
+                (error) => {
+                    console.error("Geolocation error:", error);
+                    setError("無法取得目前位置，請確認已允許定位權限。");
+                }
+            );
+        } else {
+            setError("瀏覽器不支援定位功能。");
+        }
+    };
+
     const handleSelect = async (description: string, placeId?: string) => {
         setValue(description, false);
         clearSuggestions();
@@ -75,6 +97,15 @@ export const LocationPicker = ({ isOpen, onClose, onSelect }: LocationPickerProp
                 </div>
 
                 <div className="p-4">
+                    {/* Current Location Button */}
+                    <button
+                        onClick={getCurrentLocation}
+                        className="w-full mb-4 py-3 px-4 bg-orange-50 text-orange-500 rounded-xl font-medium hover:bg-orange-100 transition-colors flex items-center justify-center gap-2"
+                    >
+                        <MapPin size={18} />
+                        使用目前位置
+                    </button>
+
                     <div className="relative">
                         <Search className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400" size={18} />
                         <input

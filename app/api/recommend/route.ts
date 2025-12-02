@@ -6,7 +6,7 @@ const GOOGLE_MAPS_API_KEY = process.env.NEXT_PUBLIC_GOOGLE_MAPS_API_KEY;
 export async function POST(request: Request) {
     try {
         const body = await request.json();
-        const { messages, lat, lng, priceLevel } = body;
+        const { messages, lat, lng, priceLevel, radius = 1500, excludeIds = [] } = body;
 
         if (!messages || !Array.isArray(messages) || messages.length === 0 || !lat || !lng) {
             return NextResponse.json({ error: 'Missing required parameters' }, { status: 400 });
@@ -27,7 +27,7 @@ export async function POST(request: Request) {
             const searchPromises = analysis.foodTypes.slice(0, 2).map(async (keyword) => {
                 // Add maxprice parameter if priceLevel is set
                 const priceParam = priceLevel ? `&maxprice=${priceLevel}` : '';
-                const url = `https://maps.googleapis.com/maps/api/place/nearbysearch/json?location=${lat},${lng}&radius=1500&keyword=${encodeURIComponent(keyword)}&language=zh-TW&key=${GOOGLE_MAPS_API_KEY}&type=restaurant${priceParam}`;
+                const url = `https://maps.googleapis.com/maps/api/place/nearbysearch/json?location=${lat},${lng}&radius=${radius}&keyword=${encodeURIComponent(keyword)}&language=zh-TW&key=${GOOGLE_MAPS_API_KEY}&type=restaurant${priceParam}`;
                 const res = await fetch(url);
                 const data = await res.json();
                 return data.results || [];
@@ -38,6 +38,8 @@ export async function POST(request: Request) {
             const seen = new Set();
             allRestaurants = results.flat().filter(place => {
                 if (seen.has(place.place_id)) return false;
+                // Filter out excluded IDs (eaten restaurants)
+                if (excludeIds.includes(place.place_id)) return false;
                 seen.add(place.place_id);
                 return true;
             });

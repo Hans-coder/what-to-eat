@@ -1,9 +1,12 @@
 'use client';
 
 import { useState, useEffect, useRef } from 'react';
-import { MapPin, Send, Sparkles, Navigation, Loader2, Cat } from 'lucide-react';
+import { MapPin, Send, Sparkles, Navigation, Loader2, Cat, SlidersHorizontal, Menu, Heart, Check } from 'lucide-react';
 import { LocationPicker } from '@/components/LocationPicker';
 import { SafeImage } from '@/components/SafeImage';
+import { FilterDrawer } from '@/components/FilterDrawer';
+import { Sidebar } from '@/components/Sidebar';
+import { addToWishlist, addToEaten, isInWishlist, isInEaten, getEatenIds, removeFromWishlist, removeFromEaten } from '@/lib/storage';
 
 interface Restaurant {
   id: string;
@@ -11,8 +14,10 @@ interface Restaurant {
   rating: number;
   user_ratings_total: number;
   vicinity: string;
+  types: string[];
   isOpen: boolean;
   photoReference?: string;
+  priceLevel?: number;
 }
 
 interface RecommendationResponse {
@@ -21,14 +26,16 @@ interface RecommendationResponse {
   foodTypes: string[];
   followUpQuestion?: string;
   restaurants: Restaurant[];
+  error?: string | null;
+  loading?: boolean;
 }
 
 interface LocationState {
   lat: number;
   lng: number;
-  address?: string;
-  error?: string | null;
+  address: string;
   loading?: boolean;
+  error?: string | null;
 }
 
 export default function Home() {
@@ -37,7 +44,11 @@ export default function Home() {
   const [location, setLocation] = useState<LocationState | null>(null);
   const [isLoading, setIsLoading] = useState(false);
   const [isLocationPickerOpen, setIsLocationPickerOpen] = useState(false);
+  const [isFilterDrawerOpen, setIsFilterDrawerOpen] = useState(false);
+  const [isSidebarOpen, setIsSidebarOpen] = useState(false);
   const [priceLevel, setPriceLevel] = useState<number | null>(null); // 1-4 for $-$$$$
+  const [radius, setRadius] = useState<number>(1500);
+  const [updateTrigger, setUpdateTrigger] = useState(0); // Force re-render for localStorage updates
   const messagesEndRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
@@ -72,6 +83,18 @@ export default function Home() {
         loading: false
       });
     }
+
+    // Load default filters from localStorage
+    const savedFilters = localStorage.getItem('defaultFilters');
+    if (savedFilters) {
+      try {
+        const { priceLevel: savedPrice, radius: savedRadius } = JSON.parse(savedFilters);
+        if (savedPrice) setPriceLevel(savedPrice);
+        if (savedRadius) setRadius(savedRadius);
+      } catch (e) {
+        console.error('Failed to load saved filters:', e);
+      }
+    }
   }, []);
 
   const handleSend = async (textOverride?: string) => {
@@ -92,7 +115,9 @@ export default function Home() {
           messages: newMessages,
           lat: location.lat,
           lng: location.lng,
-          priceLevel: priceLevel
+          priceLevel: priceLevel,
+          radius: radius,
+          excludeIds: getEatenIds()
         }),
       });
 
@@ -132,21 +157,33 @@ export default function Home() {
       <header className="sticky top-0 z-10 bg-white/80 backdrop-blur-md border-b border-orange-100">
         <div className="max-w-md mx-auto px-4 py-3 flex items-center justify-between">
           <div className="flex items-center gap-2">
+            <button
+              onClick={() => setIsSidebarOpen(true)}
+              className="p-2 -ml-2 hover:bg-orange-50 rounded-full text-orange-500 transition-colors"
+            >
+              <Menu size={24} />
+            </button>
             <div className="bg-orange-500 p-2 rounded-xl">
               <Cat className="text-white" size={20} />
             </div>
-            <h1 className="font-bold text-xl tracking-tight text-orange-500">MoodEat 橘貓食堂</h1>
+            <h1 className="font-bold text-xl tracking-tight text-orange-500">MoodEat</h1>
           </div>
 
-          <button
-            onClick={() => setIsLocationPickerOpen(true)}
-            className="flex items-center gap-1.5 bg-orange-50 px-3 py-1.5 rounded-full text-xs font-medium text-orange-500 hover:bg-orange-100 transition-colors"
-          >
-            <MapPin size={14} />
-            <span className="max-w-[120px] truncate">
-              {location?.loading ? '定位中...' : location?.address || '選擇地點'}
-            </span>
-          </button>
+          <div className="flex items-center gap-2">
+            <button
+              onClick={() => setIsLocationPickerOpen(true)}
+              className="flex items-center gap-1.5 bg-orange-50 px-3 py-1.5 rounded-full text-xs font-medium text-orange-500 hover:bg-orange-100 transition-colors"
+            >
+              <MapPin size={14} />
+              {location?.address || '定位中...'}
+            </button>
+            <button
+              onClick={() => setIsFilterDrawerOpen(true)}
+              className="flex items-center gap-1.5 bg-orange-50 p-1.5 rounded-full text-orange-500 hover:bg-orange-100 transition-colors"
+            >
+              <SlidersHorizontal size={16} />
+            </button>
+          </div>
         </div>
       </header>
 
@@ -156,7 +193,22 @@ export default function Home() {
         onSelect={handleLocationSelect}
       />
 
-      <main className="max-w-md mx-auto p-4 space-y-6">
+      <FilterDrawer
+        isOpen={isFilterDrawerOpen}
+        onClose={() => setIsFilterDrawerOpen(false)}
+        onApply={(filters) => {
+          setPriceLevel(filters.priceLevel);
+          setRadius(filters.radius);
+        }}
+        initialFilters={{ priceLevel, radius }}
+      />
+
+      <Sidebar
+        isOpen={isSidebarOpen}
+        onClose={() => setIsSidebarOpen(false)}
+      />
+
+      <main className="max-w-md mx-auto p-4 space-y-6 pb-72">
         <div className="flex gap-3">
           <div className="w-10 h-10 rounded-full bg-gradient-to-br from-orange-300 to-orange-500 flex items-center justify-center text-white shrink-0 shadow-sm">
             <Cat size={20} />
@@ -248,7 +300,55 @@ export default function Home() {
                                   fill
                                   className="object-cover group-hover:scale-105 transition-transform duration-500"
                                 />
-                                <div className="absolute top-2 right-2 bg-white/90 backdrop-blur px-2 py-1 rounded-full text-xs font-bold text-[#4A403A] shadow-sm">
+                                <div className="absolute top-2 right-2 flex gap-2">
+                                  <button
+                                    onClick={(e) => {
+                                      e.stopPropagation();
+                                      if (isInWishlist(r.id)) {
+                                        removeFromWishlist(r.id);
+                                      } else {
+                                        addToWishlist({
+                                          id: r.id,
+                                          name: r.name,
+                                          vicinity: r.vicinity,
+                                          rating: r.rating,
+                                          photoReference: r.photoReference
+                                        });
+                                      }
+                                      setUpdateTrigger(prev => prev + 1);
+                                    }}
+                                    className={`p-2 rounded-full backdrop-blur transition-colors ${isInWishlist(r.id)
+                                      ? 'bg-orange-500 text-white'
+                                      : 'bg-white/90 text-gray-400 hover:text-orange-500'
+                                      }`}
+                                  >
+                                    <Heart size={16} fill={isInWishlist(r.id) ? "currentColor" : "none"} />
+                                  </button>
+                                  <button
+                                    onClick={(e) => {
+                                      e.stopPropagation();
+                                      if (isInEaten(r.id)) {
+                                        removeFromEaten(r.id);
+                                      } else {
+                                        addToEaten({
+                                          id: r.id,
+                                          name: r.name,
+                                          vicinity: r.vicinity,
+                                          rating: r.rating,
+                                          photoReference: r.photoReference
+                                        });
+                                      }
+                                      setUpdateTrigger(prev => prev + 1);
+                                    }}
+                                    className={`p-2 rounded-full backdrop-blur transition-colors ${isInEaten(r.id)
+                                      ? 'bg-green-500 text-white'
+                                      : 'bg-white/90 text-gray-400 hover:text-green-500'
+                                      }`}
+                                  >
+                                    <Check size={16} />
+                                  </button>
+                                </div>
+                                <div className="absolute bottom-2 right-2 bg-white/90 backdrop-blur px-2 py-1 rounded-full text-xs font-bold text-[#4A403A]">
                                   ★ {r.rating} ({r.user_ratings_total})
                                 </div>
                               </div>
@@ -300,43 +400,8 @@ export default function Home() {
 
       <div className="fixed bottom-0 left-0 right-0">
         <div className="max-w-md mx-auto p-4 bg-white border-t border-orange-100">
-          {/* Budget Selector */}
-          <div className="mb-3">
-            <div className="flex items-center justify-between mb-2">
-              <span className="text-xs font-medium text-gray-500">預算範圍</span>
-              {priceLevel && (
-                <button
-                  onClick={() => setPriceLevel(null)}
-                  className="text-xs text-orange-400 hover:text-orange-500"
-                >
-                  清除
-                </button>
-              )}
-            </div>
-            <div className="flex gap-2">
-              {[
-                { level: 1, label: '$', desc: '便宜' },
-                { level: 2, label: '$$', desc: '中等' },
-                { level: 3, label: '$$$', desc: '昂貴' },
-                { level: 4, label: '$$$$', desc: '奢華' },
-              ].map((budget) => (
-                <button
-                  key={budget.level}
-                  onClick={() => setPriceLevel(budget.level === priceLevel ? null : budget.level)}
-                  className={`flex-1 py-2 px-3 rounded-xl text-sm font-bold transition-all ${priceLevel === budget.level
-                      ? 'bg-orange-500 text-white shadow-md'
-                      : 'bg-orange-50 text-orange-400 hover:bg-orange-100'
-                    }`}
-                >
-                  <div>{budget.label}</div>
-                  <div className="text-xs font-normal opacity-75">{budget.desc}</div>
-                </button>
-              ))}
-            </div>
-          </div>
-
           {/* Quick Actions */}
-          <div className="flex gap-2 overflow-x-auto pb-3 no-scrollbar">
+          <div className="flex gap-2 overflow-x-auto pb-3 no-scrollbar mb-3">
             {[
               { label: '我好累 😴', text: '喵... 我今天好累，想吃點簡單的' },
               { label: '慶祝 🎉', text: '今天要慶祝！吃頓好的！' },
