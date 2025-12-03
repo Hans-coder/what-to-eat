@@ -11,12 +11,14 @@ import { addToWishlist, addToEaten, isInWishlist, isInEaten, getEatenIds, remove
 interface Restaurant {
   id: string;
   name: string;
+  vicinity: string;
   rating: number;
   user_ratings_total: number;
-  vicinity: string;
-  types: string[];
-  isOpen: boolean;
   photoReference?: string;
+  isOpen?: boolean;
+  lat: number;
+  lng: number;
+  isEaten?: boolean;
   priceLevel?: number;
 }
 
@@ -48,6 +50,7 @@ export default function Home() {
   const [isSidebarOpen, setIsSidebarOpen] = useState(false);
   const [priceLevel, setPriceLevel] = useState<number | null>(null); // 1-4 for $-$$$$
   const [radius, setRadius] = useState<number>(1500);
+  const [cuisines, setCuisines] = useState<string[]>([]);
   const [updateTrigger, setUpdateTrigger] = useState(0); // Force re-render for localStorage updates
   const messagesEndRef = useRef<HTMLDivElement>(null);
 
@@ -88,9 +91,10 @@ export default function Home() {
     const savedFilters = localStorage.getItem('defaultFilters');
     if (savedFilters) {
       try {
-        const { priceLevel: savedPrice, radius: savedRadius } = JSON.parse(savedFilters);
+        const { priceLevel: savedPrice, radius: savedRadius, cuisines: savedCuisines } = JSON.parse(savedFilters);
         if (savedPrice) setPriceLevel(savedPrice);
         if (savedRadius) setRadius(savedRadius);
+        if (savedCuisines) setCuisines(savedCuisines);
       } catch (e) {
         console.error('Failed to load saved filters:', e);
       }
@@ -117,7 +121,8 @@ export default function Home() {
           lng: location.lng,
           priceLevel: priceLevel,
           radius: radius,
-          excludeIds: getEatenIds()
+          cuisines: cuisines,
+          eatenIds: getEatenIds()
         }),
       });
 
@@ -199,8 +204,9 @@ export default function Home() {
         onApply={(filters) => {
           setPriceLevel(filters.priceLevel);
           setRadius(filters.radius);
+          setCuisines(filters.cuisines);
         }}
-        initialFilters={{ priceLevel, radius }}
+        initialFilters={{ priceLevel, radius, cuisines }}
       />
 
       <Sidebar
@@ -300,6 +306,11 @@ export default function Home() {
                                   fill
                                   className="object-cover group-hover:scale-105 transition-transform duration-500"
                                 />
+                                {r.isEaten && (
+                                  <div className="absolute top-2 left-2 bg-green-500/90 backdrop-blur px-2 py-1 rounded-full text-xs font-bold text-white shadow-sm flex items-center gap-1">
+                                    <Check size={12} /> 最近吃過
+                                  </div>
+                                )}
                                 <div className="absolute top-2 right-2 flex gap-2">
                                   <button
                                     onClick={(e) => {

@@ -1,40 +1,57 @@
 'use client';
 
 import { useState, useEffect } from 'react';
-import { X, DollarSign, MapPin } from 'lucide-react';
+import { X, DollarSign, MapPin, Utensils } from 'lucide-react';
 
 interface FilterDrawerProps {
     isOpen: boolean;
     onClose: () => void;
-    onApply: (filters: { priceLevel: number | null; radius: number }) => void;
-    initialFilters?: { priceLevel: number | null; radius: number };
+    onApply: (filters: { priceLevel: number | null; radius: number; cuisines: string[] }) => void;
+    initialFilters?: { priceLevel: number | null; radius: number; cuisines: string[] };
 }
+
+const CUISINE_OPTIONS = [
+    '日式', '韓式', '中式', '西式', '泰式',
+    '火鍋', '燒肉', '拉麵', '壽司', '早午餐',
+    '甜點', '咖啡廳', '居酒屋', '素食'
+];
 
 export const FilterDrawer = ({ isOpen, onClose, onApply, initialFilters }: FilterDrawerProps) => {
     const [priceLevel, setPriceLevel] = useState<number | null>(initialFilters?.priceLevel || null);
     const [radius, setRadius] = useState<number>(initialFilters?.radius || 1500);
+    const [cuisines, setCuisines] = useState<string[]>(initialFilters?.cuisines || []);
 
     useEffect(() => {
         if (initialFilters) {
             setPriceLevel(initialFilters.priceLevel);
             setRadius(initialFilters.radius);
+            setCuisines(initialFilters.cuisines || []);
         }
     }, [initialFilters]);
 
     const handleApply = () => {
-        onApply({ priceLevel, radius });
+        onApply({ priceLevel, radius, cuisines });
         onClose();
     };
 
     const handleSaveAsDefault = () => {
-        localStorage.setItem('defaultFilters', JSON.stringify({ priceLevel, radius }));
+        localStorage.setItem('defaultFilters', JSON.stringify({ priceLevel, radius, cuisines }));
         handleApply();
     };
 
     const handleReset = () => {
         setPriceLevel(null);
         setRadius(1500);
+        setCuisines([]);
         localStorage.removeItem('defaultFilters');
+    };
+
+    const toggleCuisine = (cuisine: string) => {
+        setCuisines(prev =>
+            prev.includes(cuisine)
+                ? prev.filter(c => c !== cuisine)
+                : [...prev, cuisine]
+        );
     };
 
     if (!isOpen) return null;
@@ -51,29 +68,51 @@ export const FilterDrawer = ({ isOpen, onClose, onApply, initialFilters }: Filte
                 </div>
 
                 <div className="p-6 space-y-6 max-h-[70vh] overflow-y-auto">
+                    {/* Cuisines Filter */}
+                    <div>
+                        <div className="flex items-center gap-2 mb-3">
+                            <Utensils size={18} className="text-orange-500" />
+                            <span className="font-medium text-[#4A403A]">食物種類</span>
+                        </div>
+                        <div className="flex flex-wrap gap-2">
+                            {CUISINE_OPTIONS.map((cuisine) => (
+                                <button
+                                    key={cuisine}
+                                    onClick={() => toggleCuisine(cuisine)}
+                                    className={`py-2 px-3 rounded-xl text-sm font-medium transition-all ${cuisines.includes(cuisine)
+                                            ? 'bg-orange-500 text-white shadow-md'
+                                            : 'bg-orange-50 text-orange-400 hover:bg-orange-100'
+                                        }`}
+                                >
+                                    {cuisine}
+                                </button>
+                            ))}
+                        </div>
+                    </div>
+
                     {/* Budget Filter */}
                     <div>
                         <div className="flex items-center gap-2 mb-3">
                             <DollarSign size={18} className="text-orange-500" />
                             <span className="font-medium text-[#4A403A]">預算範圍</span>
                         </div>
-                        <div className="grid grid-cols-4 gap-2">
+                        <div className="grid grid-cols-2 gap-2">
                             {[
-                                { level: 1, label: '$', desc: '便宜' },
-                                { level: 2, label: '$$', desc: '中等' },
-                                { level: 3, label: '$$$', desc: '昂貴' },
-                                { level: 4, label: '$$$$', desc: '奢華' },
+                                { level: 1, label: '$', desc: '便宜 (<$200)' },
+                                { level: 2, label: '$$', desc: '中等 ($200-400)' },
+                                { level: 3, label: '$$$', desc: '昂貴 ($400-800)' },
+                                { level: 4, label: '$$$$', desc: '奢華 (>$800)' },
                             ].map((budget) => (
                                 <button
                                     key={budget.level}
                                     onClick={() => setPriceLevel(budget.level === priceLevel ? null : budget.level)}
-                                    className={`py-3 px-2 rounded-xl text-sm font-bold transition-all ${priceLevel === budget.level
-                                            ? 'bg-orange-500 text-white shadow-md'
-                                            : 'bg-orange-50 text-orange-400 hover:bg-orange-100'
+                                    className={`py-3 px-3 rounded-xl text-sm font-bold transition-all flex items-center justify-between ${priceLevel === budget.level
+                                        ? 'bg-orange-500 text-white shadow-md'
+                                        : 'bg-orange-50 text-orange-400 hover:bg-orange-100'
                                         }`}
                                 >
-                                    <div>{budget.label}</div>
-                                    <div className="text-xs font-normal opacity-75">{budget.desc}</div>
+                                    <span>{budget.label}</span>
+                                    <span className={`text-xs font-normal ${priceLevel === budget.level ? 'opacity-90' : 'opacity-75'}`}>{budget.desc}</span>
                                 </button>
                             ))}
                         </div>
@@ -96,8 +135,8 @@ export const FilterDrawer = ({ isOpen, onClose, onApply, initialFilters }: Filte
                                     key={distance.value}
                                     onClick={() => setRadius(distance.value)}
                                     className={`py-3 px-2 rounded-xl text-sm font-bold transition-all ${radius === distance.value
-                                            ? 'bg-orange-500 text-white shadow-md'
-                                            : 'bg-orange-50 text-orange-400 hover:bg-orange-100'
+                                        ? 'bg-orange-500 text-white shadow-md'
+                                        : 'bg-orange-50 text-orange-400 hover:bg-orange-100'
                                         }`}
                                 >
                                     {distance.label}

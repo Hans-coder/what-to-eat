@@ -6,7 +6,7 @@ const GOOGLE_MAPS_API_KEY = process.env.NEXT_PUBLIC_GOOGLE_MAPS_API_KEY;
 export async function POST(request: Request) {
     try {
         const body = await request.json();
-        const { messages, lat, lng, priceLevel, radius = 1500, excludeIds = [] } = body;
+        const { messages, lat, lng, priceLevel, radius = 1500, cuisines = [], eatenIds = [] } = body;
 
         if (!messages || !Array.isArray(messages) || messages.length === 0 || !lat || !lng) {
             return NextResponse.json({ error: 'Missing required parameters' }, { status: 400 });
@@ -20,11 +20,19 @@ export async function POST(request: Request) {
         console.log('Mood Analysis:', analysis);
 
         // 2. Search Restaurants based on food types
-        // We'll search for the first 2 food types to get a mix
+        // Combine AI food types with selected cuisines
+        // We'll search for the first 3 food types + selected cuisines to get a mix
+        let searchKeywords = [...analysis.foodTypes.slice(0, 3)];
+        if (cuisines && cuisines.length > 0) {
+            searchKeywords = [...cuisines, ...searchKeywords];
+        }
+        // Deduplicate keywords
+        searchKeywords = Array.from(new Set(searchKeywords)).slice(0, 5); // Limit to 5 searches max
+
         let allRestaurants: any[] = [];
 
         if (GOOGLE_MAPS_API_KEY) {
-            const searchPromises = analysis.foodTypes.slice(0, 2).map(async (keyword) => {
+            const searchPromises = searchKeywords.map(async (keyword) => {
                 // Add maxprice parameter if priceLevel is set
                 const priceParam = priceLevel ? `&maxprice=${priceLevel}` : '';
                 const url = `https://maps.googleapis.com/maps/api/place/nearbysearch/json?location=${lat},${lng}&radius=${radius}&keyword=${encodeURIComponent(keyword)}&language=zh-TW&key=${GOOGLE_MAPS_API_KEY}&type=restaurant${priceParam}`;
@@ -38,8 +46,6 @@ export async function POST(request: Request) {
             const seen = new Set();
             allRestaurants = results.flat().filter(place => {
                 if (seen.has(place.place_id)) return false;
-                // Filter out excluded IDs (eaten restaurants)
-                if (excludeIds.includes(place.place_id)) return false;
                 seen.add(place.place_id);
                 return true;
             });
@@ -56,7 +62,15 @@ export async function POST(request: Request) {
                 const priceOk = !priceLevel || !r.price_level || r.price_level <= priceLevel;
                 return ratingOk && statusOk && priceOk;
             })
-            .slice(0, 3) // Take top 3
+            // Sort: High rating first, but deprioritize eaten restaurants
+            .sort((a: any, b: any) => {
+                const aEaten = eatenIds.includes(a.place_id);
+                const bEaten = eatenIds.includes(b.place_id);
+                if (aEaten && !bEaten) return 1; // a is eaten, move to bottom
+                if (!aEaten && bEaten) return -1; // b is eaten, move to bottom
+                return b.rating - a.rating; // otherwise sort by rating
+            })
+            .slice(0, 5) // Take top 5 (increased from 3)
             .map((r: any) => ({
                 id: r.place_id,
                 name: r.name,
@@ -67,6 +81,9 @@ export async function POST(request: Request) {
                 isOpen: r.opening_hours?.open_now,
                 photoReference: r.photos?.[0]?.photo_reference,
                 priceLevel: r.price_level,
+                lat: r.geometry.location.lat,
+                lng: r.geometry.location.lng,
+                isEaten: eatenIds.includes(r.place_id)
             }));
 
         return NextResponse.json({
