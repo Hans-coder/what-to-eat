@@ -2,6 +2,15 @@
 
 All notable changes to this project will be documented in this file.
 
+## [v2.0.0] - 2025-12-04
+
+### Major Changes 🚀
+- **Home Page Redesign**: Introduced a new Hero section with a welcoming vibe and improved visual hierarchy.
+- **Mood Chips**: Added "Quick Mood Actions" (e.g., Quick, Date, Cheap) for one-click restaurant recommendations.
+- **UX Improvements**: 
+    - Added "Suggested Prompts" below the input box.
+    - Replaced loading spinner with a custom "Thinking Cat" animation.
+
 ## [v1.2.0] - 2025-12-04
 
 ### Added

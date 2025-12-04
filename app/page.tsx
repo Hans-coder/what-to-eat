@@ -6,7 +6,16 @@ import { LocationPicker } from '@/components/LocationPicker';
 import { SafeImage } from '@/components/SafeImage';
 import { FilterDrawer } from '@/components/FilterDrawer';
 import { Sidebar } from '@/components/Sidebar';
-import { addToWishlist, addToEaten, isInWishlist, isInEaten, getEatenIds, removeFromWishlist, removeFromEaten } from '@/lib/storage';
+import { MoodSelector } from '@/components/MoodSelector';
+import {
+  addToWishlist,
+  addToEaten,
+  isInWishlist,
+  isInEaten,
+  getEatenIds,
+  removeFromWishlist,
+  removeFromEaten
+} from '@/lib/storage';
 
 interface Restaurant {
   id: string;
@@ -219,16 +228,38 @@ export default function Home() {
       />
 
       <main className="max-w-md mx-auto p-4 space-y-6 pb-72">
-        <div className="flex gap-3">
-          <div className="w-10 h-10 rounded-full bg-gradient-to-br from-orange-300 to-orange-500 flex items-center justify-center text-white shrink-0 shadow-sm">
-            <Cat size={20} />
-          </div>
-          <div className="bg-white p-4 rounded-2xl rounded-tl-none shadow-sm border border-orange-100 text-[#4A403A]">
-            <p>喵！今天心情怎麼樣？想吃什麼好料的？跟我說說，本喵幫你決定！ 🐾</p>
-            <p className="text-xs text-orange-400 mt-2">試試看：「今天好累」、「跟女友吵架」、「想吃點熱的」</p>
-          </div>
-        </div>
+        {/* Hero Section */}
+        {messages.length === 0 && (
+          <div className="space-y-6 animate-in fade-in slide-in-from-bottom-4 duration-700">
+            <div className="bg-gradient-to-br from-orange-400 to-orange-600 rounded-3xl p-6 text-white shadow-lg relative overflow-hidden">
+              <div className="absolute top-0 right-0 w-32 h-32 bg-white/10 rounded-full -mr-10 -mt-10 blur-2xl" />
+              <div className="absolute bottom-0 left-0 w-24 h-24 bg-black/5 rounded-full -ml-10 -mb-10 blur-xl" />
 
+              <div className="relative z-10">
+                <div className="flex items-center gap-3 mb-4">
+                  <div className="bg-white/20 p-2 rounded-xl backdrop-blur-sm">
+                    <Cat size={24} className="text-white" />
+                  </div>
+                  <span className="font-medium text-orange-50">MoodEat AI</span>
+                </div>
+                <h2 className="text-3xl font-bold mb-2 leading-tight">
+                  今天心情怎麼樣？<br />
+                  想吃點什麼？
+                </h2>
+                <p className="text-orange-100 text-sm">
+                  讓本喵幫你決定下一餐！🐾
+                </p>
+              </div>
+            </div>
+
+            <div>
+              <h3 className="text-sm font-bold text-gray-400 mb-3 px-1 uppercase tracking-wider">快速心情點餐</h3>
+              <MoodSelector onSelect={(prompt: string) => handleSend(prompt)} disabled={isLoading} />
+            </div>
+          </div>
+        )}
+
+        {/* Chat History */}
         {messages.map((msg, index) => (
           <div key={index} className={`flex gap-3 ${msg.role === 'user' ? 'flex-row-reverse' : ''}`}>
             {msg.role === 'ai' && (
@@ -415,42 +446,45 @@ export default function Home() {
 
       <div className="fixed bottom-0 left-0 right-0">
         <div className="max-w-md mx-auto p-4 bg-white border-t border-orange-100">
-          {/* Quick Actions */}
-          <div className="flex gap-2 overflow-x-auto pb-3 no-scrollbar mb-3">
+          {/* Suggested Prompts */}
+          <div className="flex gap-2 overflow-x-auto pb-3 no-scrollbar mb-2">
             {[
-              { label: '我好累 😴', text: '喵... 我今天好累，想吃點簡單的' },
-              { label: '慶祝 🎉', text: '今天要慶祝！吃頓好的！' },
-              { label: '隨便吃 🐟', text: '隨便吃，有什麼推薦的罐罐...啊不是，是餐廳？' },
-              { label: '便宜 💰', text: '月底了，想吃便宜一點的' },
-              { label: '想吃辣 🌶️', text: '突然想吃辣的！' },
-            ].map((action) => (
+              '附近好吃的日式料理',
+              '適合聊天的咖啡廳',
+              '平價美食推薦',
+              '有插座的餐廳',
+              '寵物友善餐廳'
+            ].map((text, i) => (
               <button
-                key={action.label}
-                onClick={() => handleSend(action.text)}
-                className="whitespace-nowrap px-3 py-1.5 bg-orange-50 text-orange-500 rounded-full text-sm font-medium hover:bg-orange-500 hover:text-white transition-colors"
+                key={i}
+                onClick={() => handleSend(text)}
+                disabled={isLoading}
+                className="whitespace-nowrap px-3 py-1.5 bg-gray-50 text-gray-600 rounded-full text-xs font-medium hover:bg-orange-50 hover:text-orange-500 transition-colors border border-gray-100"
               >
-                {action.label}
+                {text}
               </button>
             ))}
           </div>
 
-          <div className="flex gap-2 items-center">
-            <input
-              type="text"
-              value={inputText}
-              onChange={(e) => setInputText(e.target.value)}
-              onKeyDown={handleKeyDown}
-              placeholder="跟橘貓說說你想吃什麼..."
-              className="flex-1 bg-orange-50 border-none rounded-full py-3 pl-5 pr-12 text-[#4A403A] placeholder:text-orange-300 focus:ring-2 focus:ring-orange-400 focus:outline-none h-12"
-              disabled={isLoading}
-            />
-            <button
-              onClick={() => handleSend()}
-              disabled={isLoading || !inputText.trim()}
-              className="h-12 w-12 flex items-center justify-center bg-orange-500 text-white rounded-full hover:bg-orange-600 disabled:opacity-50 disabled:cursor-not-allowed transition-colors shadow-sm shrink-0"
-            >
-              {isLoading ? <Loader2 className="animate-spin" size={20} /> : <Send size={20} />}
-            </button>
+          <div className="relative flex items-center gap-2">
+            <div className="relative flex-1">
+              <input
+                type="text"
+                value={inputText}
+                onChange={(e) => setInputText(e.target.value)}
+                onKeyDown={handleKeyDown}
+                placeholder="輸入你想吃的..."
+                disabled={isLoading}
+                className="w-full pl-4 pr-12 py-3.5 bg-gray-50 border-0 rounded-2xl focus:ring-2 focus:ring-orange-500/20 focus:bg-white transition-all text-[#4A403A] placeholder:text-gray-400 shadow-inner"
+              />
+              <button
+                onClick={() => handleSend()}
+                disabled={!inputText.trim() || isLoading}
+                className="absolute right-2 top-1/2 -translate-y-1/2 p-2 bg-orange-500 text-white rounded-xl disabled:opacity-50 disabled:cursor-not-allowed hover:bg-orange-600 transition-all shadow-sm active:scale-95"
+              >
+                {isLoading ? <Loader2 size={18} className="animate-spin" /> : <Send size={18} />}
+              </button>
+            </div>
           </div>
         </div>
       </div>
