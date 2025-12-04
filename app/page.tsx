@@ -51,6 +51,7 @@ export default function Home() {
   const [priceLevel, setPriceLevel] = useState<number | null>(null); // 1-4 for $-$$$$
   const [radius, setRadius] = useState<number>(1500);
   const [cuisines, setCuisines] = useState<string[]>([]);
+  const [openNow, setOpenNow] = useState<boolean>(false);
   const [updateTrigger, setUpdateTrigger] = useState(0); // Force re-render for localStorage updates
   const messagesEndRef = useRef<HTMLDivElement>(null);
 
@@ -91,10 +92,11 @@ export default function Home() {
     const savedFilters = localStorage.getItem('defaultFilters');
     if (savedFilters) {
       try {
-        const { priceLevel: savedPrice, radius: savedRadius, cuisines: savedCuisines } = JSON.parse(savedFilters);
+        const { priceLevel: savedPrice, radius: savedRadius, cuisines: savedCuisines, openNow: savedOpenNow } = JSON.parse(savedFilters);
         if (savedPrice) setPriceLevel(savedPrice);
         if (savedRadius) setRadius(savedRadius);
         if (savedCuisines) setCuisines(savedCuisines);
+        if (savedOpenNow !== undefined) setOpenNow(savedOpenNow);
       } catch (e) {
         console.error('Failed to load saved filters:', e);
       }
@@ -122,6 +124,7 @@ export default function Home() {
           priceLevel: priceLevel,
           radius: radius,
           cuisines: cuisines,
+          openNow: openNow,
           eatenIds: getEatenIds()
         }),
       });
@@ -205,8 +208,9 @@ export default function Home() {
           setPriceLevel(filters.priceLevel);
           setRadius(filters.radius);
           setCuisines(filters.cuisines);
+          setOpenNow(filters.openNow);
         }}
-        initialFilters={{ priceLevel, radius, cuisines }}
+        initialFilters={{ priceLevel, radius, cuisines, openNow }}
       />
 
       <Sidebar

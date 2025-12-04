@@ -6,7 +6,7 @@ const GOOGLE_MAPS_API_KEY = process.env.NEXT_PUBLIC_GOOGLE_MAPS_API_KEY;
 export async function POST(request: Request) {
     try {
         const body = await request.json();
-        const { messages, lat, lng, priceLevel, radius = 1500, cuisines = [], eatenIds = [] } = body;
+        const { messages, lat, lng, priceLevel, radius = 1500, cuisines = [], eatenIds = [], openNow = false } = body;
 
         if (!messages || !Array.isArray(messages) || messages.length === 0 || !lat || !lng) {
             return NextResponse.json({ error: 'Missing required parameters' }, { status: 400 });
@@ -35,7 +35,9 @@ export async function POST(request: Request) {
             const searchPromises = searchKeywords.map(async (keyword) => {
                 // Add maxprice parameter if priceLevel is set
                 const priceParam = priceLevel ? `&maxprice=${priceLevel}` : '';
-                const url = `https://maps.googleapis.com/maps/api/place/nearbysearch/json?location=${lat},${lng}&radius=${radius}&keyword=${encodeURIComponent(keyword)}&language=zh-TW&key=${GOOGLE_MAPS_API_KEY}&type=restaurant${priceParam}`;
+                // Add opennow parameter if openNow is true
+                const openNowParam = openNow ? '&opennow=true' : '';
+                const url = `https://maps.googleapis.com/maps/api/place/nearbysearch/json?location=${lat},${lng}&radius=${radius}&keyword=${encodeURIComponent(keyword)}&language=zh-TW&key=${GOOGLE_MAPS_API_KEY}&type=restaurant${priceParam}${openNowParam}`;
                 const res = await fetch(url);
                 const data = await res.json();
                 return data.results || [];
@@ -58,9 +60,12 @@ export async function POST(request: Request) {
         const recommendedRestaurants = allRestaurants
             .filter((r: any) => {
                 const ratingOk = r.rating >= 4.0;
+                // If openNow is requested, ensure business_status is OPERATIONAL and opening_hours.open_now is true
+                // Note: Google API 'opennow' param handles this, but double check doesn't hurt
                 const statusOk = r.business_status === 'OPERATIONAL';
+                const openOk = !openNow || (r.opening_hours && r.opening_hours.open_now);
                 const priceOk = !priceLevel || !r.price_level || r.price_level <= priceLevel;
-                return ratingOk && statusOk && priceOk;
+                return ratingOk && statusOk && priceOk && openOk;
             })
             // Sort: High rating first, but deprioritize eaten restaurants
             .sort((a: any, b: any) => {

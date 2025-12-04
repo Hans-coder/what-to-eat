@@ -1,13 +1,13 @@
 'use client';
 
 import { useState, useEffect } from 'react';
-import { X, DollarSign, MapPin, Utensils } from 'lucide-react';
+import { X, DollarSign, MapPin, Utensils, Clock } from 'lucide-react';
 
 interface FilterDrawerProps {
     isOpen: boolean;
     onClose: () => void;
-    onApply: (filters: { priceLevel: number | null; radius: number; cuisines: string[] }) => void;
-    initialFilters?: { priceLevel: number | null; radius: number; cuisines: string[] };
+    onApply: (filters: { priceLevel: number | null; radius: number; cuisines: string[]; openNow: boolean }) => void;
+    initialFilters?: { priceLevel: number | null; radius: number; cuisines: string[]; openNow: boolean };
 }
 
 const CUISINE_OPTIONS = [
@@ -20,22 +20,24 @@ export const FilterDrawer = ({ isOpen, onClose, onApply, initialFilters }: Filte
     const [priceLevel, setPriceLevel] = useState<number | null>(initialFilters?.priceLevel || null);
     const [radius, setRadius] = useState<number>(initialFilters?.radius || 1500);
     const [cuisines, setCuisines] = useState<string[]>(initialFilters?.cuisines || []);
+    const [openNow, setOpenNow] = useState<boolean>(initialFilters?.openNow || false);
 
     useEffect(() => {
         if (initialFilters) {
             setPriceLevel(initialFilters.priceLevel);
             setRadius(initialFilters.radius);
             setCuisines(initialFilters.cuisines || []);
+            setOpenNow(initialFilters.openNow || false);
         }
     }, [initialFilters]);
 
     const handleApply = () => {
-        onApply({ priceLevel, radius, cuisines });
+        onApply({ priceLevel, radius, cuisines, openNow });
         onClose();
     };
 
     const handleSaveAsDefault = () => {
-        localStorage.setItem('defaultFilters', JSON.stringify({ priceLevel, radius, cuisines }));
+        localStorage.setItem('defaultFilters', JSON.stringify({ priceLevel, radius, cuisines, openNow }));
         handleApply();
     };
 
@@ -43,6 +45,7 @@ export const FilterDrawer = ({ isOpen, onClose, onApply, initialFilters }: Filte
         setPriceLevel(null);
         setRadius(1500);
         setCuisines([]);
+        setOpenNow(false);
         localStorage.removeItem('defaultFilters');
     };
 
@@ -68,6 +71,20 @@ export const FilterDrawer = ({ isOpen, onClose, onApply, initialFilters }: Filte
                 </div>
 
                 <div className="p-6 space-y-6 max-h-[70vh] overflow-y-auto">
+                    {/* Open Now Filter */}
+                    <div className="flex items-center justify-between">
+                        <div className="flex items-center gap-2">
+                            <Clock size={18} className="text-orange-500" />
+                            <span className="font-medium text-[#4A403A]">僅顯示營業中</span>
+                        </div>
+                        <button
+                            onClick={() => setOpenNow(!openNow)}
+                            className={`w-12 h-7 rounded-full transition-colors relative ${openNow ? 'bg-orange-500' : 'bg-gray-200'}`}
+                        >
+                            <div className={`absolute top-1 left-1 w-5 h-5 bg-white rounded-full shadow-sm transition-transform ${openNow ? 'translate-x-5' : 'translate-x-0'}`} />
+                        </button>
+                    </div>
+
                     {/* Cuisines Filter */}
                     <div>
                         <div className="flex items-center gap-2 mb-3">

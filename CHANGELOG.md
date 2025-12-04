@@ -2,6 +2,12 @@
 
 All notable changes to this project will be documented in this file.
 
+## [v1.2.0] - 2025-12-04
+
+### Added
+- **Open Now Filter**: Added a toggle in the Filter Drawer to show only currently open restaurants.
+- **API Update**: Integrated `openNow` parameter into the recommendation API.
+
 ## [v1.1.0] - 2025-12-04
 
 ### Added
