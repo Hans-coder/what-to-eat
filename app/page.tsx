@@ -332,6 +332,13 @@ export default function Home() {
         {/* Swipe Mode View */}
         {viewMode === 'swipe' && swipeStack.length > 0 && (
           <div className="h-[65vh] relative w-full flex flex-col items-center justify-center">
+            {/* Stack Context Header */}
+            <div className="absolute top-0 left-0 right-0 text-center z-10 -mt-8">
+              <span className="bg-orange-100 text-orange-600 px-3 py-1 rounded-full text-xs font-bold shadow-sm">
+                剩餘 {swipeStack.length} 張卡片
+              </span>
+            </div>
+
             <AnimatePresence>
               {swipeStack.map((r, index) => (
                 index === swipeStack.length - 1 ? (
@@ -343,10 +350,23 @@ export default function Home() {
                     onSwipeLeft={() => handleSwipeLeft(r.id)}
                   />
                 ) : (
-                  // Render cards behind (optional stack effect)
-                  index === swipeStack.length - 2 && (
-                    <div key={r.id} className="absolute top-0 left-0 w-full h-full scale-95 opacity-50 translate-y-4 rounded-3xl overflow-hidden bg-gray-200 border border-gray-100">
-                      <div className="w-full h-full bg-white/50" />
+                  // Render cards behind (Stack Effect)
+                  index >= swipeStack.length - 3 && (
+                    <div
+                      key={r.id}
+                      className="absolute top-0 left-0 w-full h-full rounded-3xl overflow-hidden bg-white border border-gray-100 shadow-xl"
+                      style={{
+                        transform: `scale(${1 - (swipeStack.length - 1 - index) * 0.05}) translateY(${(swipeStack.length - 1 - index) * 10}px)`,
+                        zIndex: index,
+                        opacity: 1 - (swipeStack.length - 1 - index) * 0.3
+                      }}
+                    >
+                      {/* Mock Content for background cards */}
+                      <div className="w-full h-[70%] bg-gray-200 animate-pulse" />
+                      <div className="p-6 space-y-3">
+                        <div className="h-6 bg-gray-100 rounded w-3/4" />
+                        <div className="h-4 bg-gray-50 rounded w-1/2" />
+                      </div>
                     </div>
                   )
                 )
