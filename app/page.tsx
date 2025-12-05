@@ -1,12 +1,15 @@
 'use client';
 
 import { useState, useEffect, useRef } from 'react';
-import { MapPin, Send, Sparkles, Navigation, Loader2, Cat, SlidersHorizontal, Menu, Heart, Check } from 'lucide-react';
+import { MapPin, Send, Sparkles, Navigation, Loader2, Cat, SlidersHorizontal, Menu, Heart, Check, RotateCcw } from 'lucide-react';
 import { LocationPicker } from '@/components/LocationPicker';
 import { SafeImage } from '@/components/SafeImage';
 import { FilterDrawer } from '@/components/FilterDrawer';
 import { Sidebar } from '@/components/Sidebar';
-import { MoodSelector } from '@/components/MoodSelector';
+import { MoodSelector, MoodFilters } from '@/components/MoodSelector';
+import { ViewToggle } from '@/components/ViewToggle';
+import { SwipeCard } from '@/components/SwipeCard';
+import { AnimatePresence } from 'framer-motion';
 import {
   addToWishlist,
   addToEaten,
@@ -64,6 +67,11 @@ export default function Home() {
   const [updateTrigger, setUpdateTrigger] = useState(0); // Force re-render for localStorage updates
   const messagesEndRef = useRef<HTMLDivElement>(null);
 
+  // v2.1.0 Swipe Mode
+  const [viewMode, setViewMode] = useState<'list' | 'swipe'>('list');
+  // We keep track of the *active* restaurants separately for swipe mode to allow removing them locally
+  const [swipeStack, setSwipeStack] = useState<Restaurant[]>([]);
+
   useEffect(() => {
     if (navigator.geolocation) {
       setLocation(prev => ({ ...prev!, loading: true, lat: 0, lng: 0 }));
@@ -112,15 +120,43 @@ export default function Home() {
     }
   }, []);
 
-  const handleSend = async (textOverride?: string) => {
+  // Update Swipe Stack when new messages arrive
+  useEffect(() => {
+    const lastMsg = messages[messages.length - 1];
+    if (lastMsg?.recommendation?.restaurants) {
+      // Clone the restaurants to be mutable for the stack
+      setSwipeStack([...lastMsg.recommendation.restaurants]);
+      // Auto-switch to swipe mode if it's the preference? Maybe not.
+    }
+  }, [messages]);
+
+  const handleSend = async (textOverride?: string, filterOverrides?: MoodFilters) => {
     const textToSend = textOverride || inputText;
     if (!textToSend.trim() || !location) return;
+
+    // Apply filter overrides if present
+    let effectivePriceLevel = priceLevel;
+    let effectiveOpenNow = openNow;
+
+    if (filterOverrides) {
+      if (filterOverrides.priceLevel !== undefined) {
+        setPriceLevel(filterOverrides.priceLevel);
+        effectivePriceLevel = filterOverrides.priceLevel;
+      }
+      if (filterOverrides.openNow !== undefined) {
+        setOpenNow(filterOverrides.openNow);
+        effectiveOpenNow = filterOverrides.openNow;
+      }
+    }
 
     setInputText('');
     const newUserMsg = { role: 'user' as const, text: textToSend };
     const newMessages = [...messages, newUserMsg];
     setMessages(newMessages);
     setIsLoading(true);
+    // Reset view mode or stack?
+    // Let's keep view mode but clear stack momentarily
+    setSwipeStack([]);
 
     try {
       const res = await fetch('/api/recommend', {
@@ -130,10 +166,10 @@ export default function Home() {
           messages: newMessages,
           lat: location.lat,
           lng: location.lng,
-          priceLevel: priceLevel,
+          priceLevel: effectivePriceLevel,
           radius: radius,
           cuisines: cuisines,
-          openNow: openNow,
+          openNow: effectiveOpenNow,
           eatenIds: getEatenIds()
         }),
       });
@@ -167,6 +203,33 @@ export default function Home() {
       error: null,
       loading: false
     });
+  };
+
+  const removeCard = (id: string) => {
+    setSwipeStack(prev => prev.filter(r => r.id !== id));
+  };
+
+  const handleSwipeRight = (restaurant: Restaurant) => {
+    addToWishlist({
+      id: restaurant.id,
+      name: restaurant.name,
+      vicinity: restaurant.vicinity,
+      rating: restaurant.rating,
+      photoReference: restaurant.photoReference
+    });
+    setUpdateTrigger(prev => prev + 1);
+    removeCard(restaurant.id);
+  };
+
+  const handleSwipeLeft = (id: string) => {
+    removeCard(id);
+  };
+
+  const resetStack = () => {
+    const lastMsg = messages[messages.length - 1];
+    if (lastMsg?.recommendation?.restaurants) {
+      setSwipeStack([...lastMsg.recommendation.restaurants]);
+    }
   };
 
   return (
@@ -228,7 +291,7 @@ export default function Home() {
       />
 
       <main className="max-w-md mx-auto p-4 space-y-6 pb-72">
-        {/* Hero Section */}
+        {/* Hero Section - Only show when no messages */}
         {messages.length === 0 && (
           <div className="space-y-6 animate-in fade-in slide-in-from-bottom-4 duration-700">
             <div className="bg-gradient-to-br from-orange-400 to-orange-600 rounded-3xl p-6 text-white shadow-lg relative overflow-hidden">
@@ -254,178 +317,234 @@ export default function Home() {
 
             <div>
               <h3 className="text-sm font-bold text-gray-400 mb-3 px-1 uppercase tracking-wider">快速心情點餐</h3>
-              <MoodSelector onSelect={(prompt: string) => handleSend(prompt)} disabled={isLoading} />
+              <MoodSelector onSelect={handleSend} disabled={isLoading} />
             </div>
           </div>
         )}
 
-        {/* Chat History */}
-        {messages.map((msg, index) => (
-          <div key={index} className={`flex gap-3 ${msg.role === 'user' ? 'flex-row-reverse' : ''}`}>
-            {msg.role === 'ai' && (
-              <div className="w-10 h-10 rounded-full bg-gradient-to-br from-orange-300 to-orange-500 flex items-center justify-center text-white shrink-0 shadow-sm">
-                <Cat size={20} />
-              </div>
-            )}
+        {/* View Toggle Logic */}
+        {messages.length > 0 && (
+          <div className="flex justify-center -mb-2 z-10 sticky top-0">
+            <ViewToggle viewMode={viewMode} onChange={setViewMode} />
+          </div>
+        )}
 
-            {msg.role === 'user' ? (
-              <div className="bg-orange-500 p-4 rounded-2xl rounded-tr-none shadow-sm text-white">
-                <p>{msg.text}</p>
-              </div>
-            ) : (
-              <div className="space-y-4 w-full">
-                {msg.text && (
-                  <div className="bg-white p-4 rounded-2xl rounded-tl-none shadow-sm border border-orange-100 text-[#4A403A]">
-                    {msg.text}
-                  </div>
-                )}
-                {msg.recommendation && (
-                  <div className="space-y-4 animate-in fade-in slide-in-from-bottom-4 duration-500">
-                    <div className="bg-white p-4 rounded-2xl rounded-tl-none shadow-sm border border-orange-100 text-[#4A403A]">
-                      <p className="font-medium mb-1 text-orange-500 flex items-center gap-1">
-                        <Cat size={14} /> {msg.recommendation.mood} Mode
-                      </p>
-                      <p>{msg.recommendation.reason}</p>
-
-                      {msg.recommendation.followUpQuestion && (
-                        <div className="mt-3 pt-3 border-t border-orange-100">
-                          <p className="font-bold text-orange-500 flex items-center gap-2">
-                            <Sparkles size={14} />
-                            {msg.recommendation.followUpQuestion}
-                          </p>
-                        </div>
-                      )}
-
-                      {msg.recommendation.foodTypes && msg.recommendation.foodTypes.length > 0 && (
-                        <div className="mt-3 flex flex-wrap gap-2">
-                          {msg.recommendation.foodTypes.map(t => (
-                            <span key={t} className="text-xs bg-orange-50 text-orange-500 px-2 py-1 rounded-full">#{t}</span>
-                          ))}
-                        </div>
-                      )}
+        {/* Swipe Mode View */}
+        {viewMode === 'swipe' && swipeStack.length > 0 && (
+          <div className="h-[65vh] relative w-full flex flex-col items-center justify-center">
+            <AnimatePresence>
+              {swipeStack.map((r, index) => (
+                index === swipeStack.length - 1 ? (
+                  <SwipeCard
+                    key={r.id}
+                    data={r}
+                    imageSrc={getPhotoUrl(r.photoReference)}
+                    onSwipeRight={() => handleSwipeRight(r)}
+                    onSwipeLeft={() => handleSwipeLeft(r.id)}
+                  />
+                ) : (
+                  // Render cards behind (optional stack effect)
+                  index === swipeStack.length - 2 && (
+                    <div key={r.id} className="absolute top-0 left-0 w-full h-full scale-95 opacity-50 translate-y-4 rounded-3xl overflow-hidden bg-gray-200 border border-gray-100">
+                      <div className="w-full h-full bg-white/50" />
                     </div>
-                    {/* Restaurant Cards */}
-                    {msg.recommendation.restaurants && msg.recommendation.restaurants.length > 0 && (
-                      <div className="space-y-4">
-                        {/* One Pick Button */}
-                        {msg.recommendation.restaurants.length > 1 && (
-                          <button
-                            onClick={() => {
-                              if (!msg.recommendation?.restaurants) return;
-                              const randomIndex = Math.floor(Math.random() * msg.recommendation.restaurants.length);
-                              const selected = msg.recommendation.restaurants[randomIndex];
-                              // Scroll to the selected card
-                              const cardElement = document.getElementById(`restaurant-${selected.id}`);
-                              if (cardElement) {
-                                cardElement.scrollIntoView({ behavior: 'smooth', block: 'center' });
-                                cardElement.classList.add('ring-4', 'ring-orange-400', 'ring-offset-2');
-                                setTimeout(() => {
-                                  cardElement.classList.remove('ring-4', 'ring-orange-400', 'ring-offset-2');
-                                }, 2000);
-                              }
-                            }}
-                            className="w-full bg-gradient-to-r from-orange-400 to-orange-500 text-white py-3 px-4 rounded-xl font-bold shadow-lg hover:shadow-xl transition-all flex items-center justify-center gap-2 active:scale-95"
-                          >
-                            <Sparkles size={18} />
-                            喵！幫我選一個！ 🎲
-                          </button>
-                        )}
-
-                        <div className="grid gap-4">
-                          {msg.recommendation.restaurants.map(r => (
-                            <div id={`restaurant-${r.id}`} key={r.id} className="bg-white rounded-2xl overflow-hidden shadow-sm border border-orange-100 hover:shadow-md transition-all group">
-                              <div className="relative h-32 overflow-hidden">
-                                <SafeImage
-                                  src={getPhotoUrl(r.photoReference)}
-                                  alt={r.name}
-                                  fill
-                                  className="object-cover group-hover:scale-105 transition-transform duration-500"
-                                />
-                                {r.isEaten && (
-                                  <div className="absolute top-2 left-2 bg-green-500/90 backdrop-blur px-2 py-1 rounded-full text-xs font-bold text-white shadow-sm flex items-center gap-1">
-                                    <Check size={12} /> 最近吃過
-                                  </div>
-                                )}
-                                <div className="absolute top-2 right-2 flex gap-2">
-                                  <button
-                                    onClick={(e) => {
-                                      e.stopPropagation();
-                                      if (isInWishlist(r.id)) {
-                                        removeFromWishlist(r.id);
-                                      } else {
-                                        addToWishlist({
-                                          id: r.id,
-                                          name: r.name,
-                                          vicinity: r.vicinity,
-                                          rating: r.rating,
-                                          photoReference: r.photoReference
-                                        });
-                                      }
-                                      setUpdateTrigger(prev => prev + 1);
-                                    }}
-                                    className={`p-2 rounded-full backdrop-blur transition-colors ${isInWishlist(r.id)
-                                      ? 'bg-orange-500 text-white'
-                                      : 'bg-white/90 text-gray-400 hover:text-orange-500'
-                                      }`}
-                                  >
-                                    <Heart size={16} fill={isInWishlist(r.id) ? "currentColor" : "none"} />
-                                  </button>
-                                  <button
-                                    onClick={(e) => {
-                                      e.stopPropagation();
-                                      if (isInEaten(r.id)) {
-                                        removeFromEaten(r.id);
-                                      } else {
-                                        addToEaten({
-                                          id: r.id,
-                                          name: r.name,
-                                          vicinity: r.vicinity,
-                                          rating: r.rating,
-                                          photoReference: r.photoReference
-                                        });
-                                      }
-                                      setUpdateTrigger(prev => prev + 1);
-                                    }}
-                                    className={`p-2 rounded-full backdrop-blur transition-colors ${isInEaten(r.id)
-                                      ? 'bg-green-500 text-white'
-                                      : 'bg-white/90 text-gray-400 hover:text-green-500'
-                                      }`}
-                                  >
-                                    <Check size={16} />
-                                  </button>
-                                </div>
-                                <div className="absolute bottom-2 right-2 bg-white/90 backdrop-blur px-2 py-1 rounded-full text-xs font-bold text-[#4A403A]">
-                                  ★ {r.rating} ({r.user_ratings_total})
-                                </div>
-                              </div>
-                              <div className="p-4">
-                                <h3 className="font-bold text-lg text-[#4A403A] mb-1 group-hover:text-orange-500 transition-colors">{r.name}</h3>
-                                <p className="text-sm text-[#8C8077] mb-3 line-clamp-1">{r.vicinity}</p>
-                                <div className="flex items-center justify-between">
-                                  <span className={`text-xs px-2.5 py-1 rounded-full font-medium ${r.isOpen ? 'bg-green-100 text-green-700' : 'bg-gray-100 text-gray-500'}`}>
-                                    {r.isOpen ? '營業中' : '休息中'}
-                                  </span>
-                                  <a
-                                    href={`https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(r.name)}&query_place_id=${r.id}`}
-                                    target="_blank"
-                                    rel="noopener noreferrer"
-                                    className="text-xs font-bold text-white bg-orange-400 px-3 py-1.5 rounded-full flex items-center gap-1 hover:bg-orange-500 transition-colors shadow-sm"
-                                  >
-                                    導航 <Navigation size={12} />
-                                  </a>
-                                </div>
-                              </div>
-                            </div>
-                          ))}
-                        </div>
-                      </div>
-                    )}
-                  </div>
-                )}
+                  )
+                )
+              ))}
+            </AnimatePresence>
+            {swipeStack.length === 0 && (
+              <div className="text-center text-gray-400 p-8">
+                <Cat size={48} className="mx-auto mb-2 text-gray-300" />
+                <p>沒有更多餐廳了喵...</p>
+                <button onClick={resetStack} className="mt-4 flex items-center justify-center gap-1 mx-auto text-orange-500 font-bold">
+                  <RotateCcw size={16} /> 重來
+                </button>
               </div>
             )}
           </div>
-        ))}
+        )}
+
+        {/* Show Empty state for Swipe Mode if stack is empty */}
+        {viewMode === 'swipe' && swipeStack.length === 0 && messages.length > 0 && (
+          <div className="h-[60vh] flex flex-col items-center justify-center text-gray-400">
+            <Cat size={48} className="mx-auto mb-2 text-gray-300" />
+            <p>這回合的卡片滑完了！</p>
+            <button onClick={resetStack} className="mt-4 flex items-center justify-center gap-1 mx-auto text-orange-500 font-bold bg-orange-50 px-4 py-2 rounded-full">
+              <RotateCcw size={16} /> 重新檢視
+            </button>
+            <p className="mt-8 text-xs text-gray-300">或輸入新的需求...</p>
+          </div>
+        )}
+
+        {/* List View - Original Chat History */}
+        <div className={viewMode === 'swipe' ? 'hidden' : ''}>
+          {messages.map((msg, index) => (
+            <div key={index} className={`flex gap-3 ${msg.role === 'user' ? 'flex-row-reverse' : ''}`}>
+              {msg.role === 'ai' && (
+                <div className="w-10 h-10 rounded-full bg-gradient-to-br from-orange-300 to-orange-500 flex items-center justify-center text-white shrink-0 shadow-sm">
+                  <Cat size={20} />
+                </div>
+              )}
+
+              {msg.role === 'user' ? (
+                <div className="bg-orange-500 p-4 rounded-2xl rounded-tr-none shadow-sm text-white">
+                  <p>{msg.text}</p>
+                </div>
+              ) : (
+                <div className="space-y-4 w-full">
+                  {msg.text && (
+                    <div className="bg-white p-4 rounded-2xl rounded-tl-none shadow-sm border border-orange-100 text-[#4A403A]">
+                      {msg.text}
+                    </div>
+                  )}
+                  {msg.recommendation && (
+                    <div className="space-y-4 animate-in fade-in slide-in-from-bottom-4 duration-500">
+                      <div className="bg-white p-4 rounded-2xl rounded-tl-none shadow-sm border border-orange-100 text-[#4A403A]">
+                        <p className="font-medium mb-1 text-orange-500 flex items-center gap-1">
+                          <Cat size={14} /> {msg.recommendation.mood} Mode
+                        </p>
+                        <p>{msg.recommendation.reason}</p>
+
+                        {msg.recommendation.followUpQuestion && (
+                          <div className="mt-3 pt-3 border-t border-orange-100">
+                            <p className="font-bold text-orange-500 flex items-center gap-2">
+                              <Sparkles size={14} />
+                              {msg.recommendation.followUpQuestion}
+                            </p>
+                          </div>
+                        )}
+
+                        {msg.recommendation.foodTypes && msg.recommendation.foodTypes.length > 0 && (
+                          <div className="mt-3 flex flex-wrap gap-2">
+                            {msg.recommendation.foodTypes.map(t => (
+                              <span key={t} className="text-xs bg-orange-50 text-orange-500 px-2 py-1 rounded-full">#{t}</span>
+                            ))}
+                          </div>
+                        )}
+                      </div>
+                      {/* Restaurant Cards */}
+                      {msg.recommendation.restaurants && msg.recommendation.restaurants.length > 0 && (
+                        <div className="space-y-4">
+                          {/* One Pick Button */}
+                          {msg.recommendation.restaurants.length > 1 && (
+                            <button
+                              onClick={() => {
+                                if (!msg.recommendation?.restaurants) return;
+                                const randomIndex = Math.floor(Math.random() * msg.recommendation.restaurants.length);
+                                const selected = msg.recommendation.restaurants[randomIndex];
+                                // Scroll to the selected card
+                                const cardElement = document.getElementById(`restaurant-${selected.id}`);
+                                if (cardElement) {
+                                  cardElement.scrollIntoView({ behavior: 'smooth', block: 'center' });
+                                  cardElement.classList.add('ring-4', 'ring-orange-400', 'ring-offset-2');
+                                  setTimeout(() => {
+                                    cardElement.classList.remove('ring-4', 'ring-orange-400', 'ring-offset-2');
+                                  }, 2000);
+                                }
+                              }}
+                              className="w-full bg-gradient-to-r from-orange-400 to-orange-500 text-white py-3 px-4 rounded-xl font-bold shadow-lg hover:shadow-xl transition-all flex items-center justify-center gap-2 active:scale-95"
+                            >
+                              <Sparkles size={18} />
+                              喵！幫我選一個！ 🎲
+                            </button>
+                          )}
+
+                          <div className="grid gap-4">
+                            {msg.recommendation.restaurants.map(r => (
+                              <div id={`restaurant-${r.id}`} key={r.id} className="bg-white rounded-2xl overflow-hidden shadow-sm border border-orange-100 hover:shadow-md transition-all group">
+                                <div className="relative h-32 overflow-hidden">
+                                  <SafeImage
+                                    src={getPhotoUrl(r.photoReference)}
+                                    alt={r.name}
+                                    fill
+                                    className="object-cover group-hover:scale-105 transition-transform duration-500"
+                                  />
+                                  {r.isEaten && (
+                                    <div className="absolute top-2 left-2 bg-green-500/90 backdrop-blur px-2 py-1 rounded-full text-xs font-bold text-white shadow-sm flex items-center gap-1">
+                                      <Check size={12} /> 最近吃過
+                                    </div>
+                                  )}
+                                  <div className="absolute top-2 right-2 flex gap-2">
+                                    <button
+                                      onClick={(e) => {
+                                        e.stopPropagation();
+                                        if (isInWishlist(r.id)) {
+                                          removeFromWishlist(r.id);
+                                        } else {
+                                          addToWishlist({
+                                            id: r.id,
+                                            name: r.name,
+                                            vicinity: r.vicinity,
+                                            rating: r.rating,
+                                            photoReference: r.photoReference
+                                          });
+                                        }
+                                        setUpdateTrigger(prev => prev + 1);
+                                      }}
+                                      className={`p-2 rounded-full backdrop-blur transition-colors ${isInWishlist(r.id)
+                                        ? 'bg-orange-500 text-white'
+                                        : 'bg-white/90 text-gray-400 hover:text-orange-500'
+                                        }`}
+                                    >
+                                      <Heart size={16} fill={isInWishlist(r.id) ? "currentColor" : "none"} />
+                                    </button>
+                                    <button
+                                      onClick={(e) => {
+                                        e.stopPropagation();
+                                        if (isInEaten(r.id)) {
+                                          removeFromEaten(r.id);
+                                        } else {
+                                          addToEaten({
+                                            id: r.id,
+                                            name: r.name,
+                                            vicinity: r.vicinity,
+                                            rating: r.rating,
+                                            photoReference: r.photoReference
+                                          });
+                                        }
+                                        setUpdateTrigger(prev => prev + 1);
+                                      }}
+                                      className={`p-2 rounded-full backdrop-blur transition-colors ${isInEaten(r.id)
+                                        ? 'bg-green-500 text-white'
+                                        : 'bg-white/90 text-gray-400 hover:text-green-500'
+                                        }`}
+                                    >
+                                      <Check size={16} />
+                                    </button>
+                                  </div>
+                                  <div className="absolute bottom-2 right-2 bg-white/90 backdrop-blur px-2 py-1 rounded-full text-xs font-bold text-[#4A403A]">
+                                    ★ {r.rating} ({r.user_ratings_total})
+                                  </div>
+                                </div>
+                                <div className="p-4">
+                                  <h3 className="font-bold text-lg text-[#4A403A] mb-1 group-hover:text-orange-500 transition-colors">{r.name}</h3>
+                                  <p className="text-sm text-[#8C8077] mb-3 line-clamp-1">{r.vicinity}</p>
+                                  <div className="flex items-center justify-between">
+                                    <span className={`text-xs px-2.5 py-1 rounded-full font-medium ${r.isOpen ? 'bg-green-100 text-green-700' : 'bg-gray-100 text-gray-500'}`}>
+                                      {r.isOpen ? '營業中' : '休息中'}
+                                    </span>
+                                    <a
+                                      href={`https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(r.name)}&query_place_id=${r.id}`}
+                                      target="_blank"
+                                      rel="noopener noreferrer"
+                                      className="text-xs font-bold text-white bg-orange-400 px-3 py-1.5 rounded-full flex items-center gap-1 hover:bg-orange-500 transition-colors shadow-sm"
+                                    >
+                                      導航 <Navigation size={12} />
+                                    </a>
+                                  </div>
+                                </div>
+                              </div>
+                            ))}
+                          </div>
+                        </div>
+                      )}
+                    </div>
+                  )}
+                </div>
+              )}
+            </div>
+          ))}
+        </div>
 
         {isLoading && (
           <div className="flex gap-3">
@@ -444,26 +563,11 @@ export default function Home() {
         )}
       </main>
 
-      <div className="fixed bottom-0 left-0 right-0">
-        <div className="max-w-md mx-auto p-4 bg-white border-t border-orange-100">
-          {/* Suggested Prompts */}
-          <div className="flex gap-2 overflow-x-auto pb-3 no-scrollbar mb-2">
-            {[
-              '附近好吃的日式料理',
-              '適合聊天的咖啡廳',
-              '平價美食推薦',
-              '有插座的餐廳',
-              '寵物友善餐廳'
-            ].map((text, i) => (
-              <button
-                key={i}
-                onClick={() => handleSend(text)}
-                disabled={isLoading}
-                className="whitespace-nowrap px-3 py-1.5 bg-gray-50 text-gray-600 rounded-full text-xs font-medium hover:bg-orange-50 hover:text-orange-500 transition-colors border border-gray-100"
-              >
-                {text}
-              </button>
-            ))}
+      <div className="fixed bottom-0 left-0 right-0 z-20">
+        <div className="max-w-md mx-auto p-4 bg-white/95 backdrop-blur-md border-t border-orange-100 shadow-[0_-4px_6px_-1px_rgba(0,0,0,0.05)]">
+          {/* Persistent Mood Chips */}
+          <div className="mb-3">
+            <MoodSelector onSelect={handleSend} disabled={isLoading} variant="compact" />
           </div>
 
           <div className="relative flex items-center gap-2">
