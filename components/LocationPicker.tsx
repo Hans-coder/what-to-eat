@@ -1,8 +1,8 @@
 'use client';
 
-import { useState, useEffect } from 'react';
+import { useState } from 'react';
 import usePlacesAutocomplete, { getGeocode, getLatLng } from 'use-places-autocomplete';
-import { MapPin, X, Search, Loader2 } from 'lucide-react';
+import { MapPin, Search, X } from 'lucide-react';
 
 interface LocationPickerProps {
     isOpen: boolean;

@@ -1,5 +1,5 @@
 import { Restaurant } from '@/lib/data';
-import { Star, MapPin, Clock, DollarSign } from 'lucide-react';
+import { Star, MapPin, Clock } from 'lucide-react';
 import { SafeImage } from './SafeImage';
 
 interface RestaurantCardProps {

@@ -1,5 +1,5 @@
 import { Restaurant } from '@/lib/data';
-import { X, MapPin, Clock, Phone, Globe, Star, Utensils, ThumbsUp, ThumbsDown, Heart, Bookmark, Check, Gift, Cake, Tag, Calendar, TrendingUp, ChevronUp, ChevronDown, AlertTriangle, CreditCard } from 'lucide-react';
+import { X, Clock, ThumbsUp, Heart, Bookmark, Check, Calendar, TrendingUp, ChevronUp, ChevronDown, AlertTriangle, ThumbsDown, Gift, Cake, Tag, CreditCard } from 'lucide-react';
 import { useState } from 'react';
 import { SafeImage } from './SafeImage';
 
@@ -60,10 +60,10 @@ export function RestaurantDetail({
                     <div className="flex gap-2">
                         <button
                             onClick={() => onToggleFavorite(restaurant.id)}
-                            className={`flex-1 py-3 rounded-xl font-bold flex flex-col items-center justify-center gap-1 transition-colors border ${isFavorite
+                            className={`flex - 1 py - 3 rounded - xl font - bold flex flex - col items - center justify - center gap - 1 transition - colors border ${isFavorite
                                 ? 'bg-pink-50 text-pink-600 border-pink-200'
                                 : 'bg-white text-gray-500 border-gray-200 hover:bg-gray-50'
-                                }`}
+                                } `}
                         >
                             <Heart size={20} className={isFavorite ? 'fill-pink-600' : ''} />
                             <span className="text-xs">最愛</span>
@@ -71,10 +71,10 @@ export function RestaurantDetail({
 
                         <button
                             onClick={() => onToggleWishlist(restaurant.id)}
-                            className={`flex-1 py-3 rounded-xl font-bold flex flex-col items-center justify-center gap-1 transition-colors border ${isWishlisted
+                            className={`flex - 1 py - 3 rounded - xl font - bold flex flex - col items - center justify - center gap - 1 transition - colors border ${isWishlisted
                                 ? 'bg-indigo-50 text-indigo-600 border-indigo-200'
                                 : 'bg-white text-gray-500 border-gray-200 hover:bg-gray-50'
-                                }`}
+                                } `}
                         >
                             <Bookmark size={20} className={isWishlisted ? 'fill-indigo-600' : ''} />
                             <span className="text-xs">想吃</span>
@@ -82,10 +82,10 @@ export function RestaurantDetail({
 
                         <button
                             onClick={() => onMarkEaten(restaurant.id)}
-                            className={`flex-1 py-3 rounded-xl font-bold flex flex-col items-center justify-center gap-1 transition-colors border ${isEaten
+                            className={`flex - 1 py - 3 rounded - xl font - bold flex flex - col items - center justify - center gap - 1 transition - colors border ${isEaten
                                 ? 'bg-green-50 text-green-600 border-green-200'
                                 : 'bg-white text-gray-500 border-gray-200 hover:bg-gray-50'
-                                }`}
+                                } `}
                         >
                             {isEaten ? <Check size={20} /> : <UtensilsCrossedIcon size={20} />}
                             <span className="text-xs">{isEaten ? '本週已吃' : '標記已吃'}</span>
@@ -238,7 +238,7 @@ export function RestaurantDetail({
                             </h3>
                             <div className="space-y-2">
                                 {restaurant.deals.map((deal, i) => (
-                                    <div key={i} className={`p-3 rounded-lg text-sm font-medium flex items-center gap-2 ${deal.includes('壽星') ? 'bg-red-50 text-red-700 border border-red-100' : 'bg-orange-50 text-orange-700 border border-orange-100'}`}>
+                                    <div key={i} className={`p - 3 rounded - lg text - sm font - medium flex items - center gap - 2 ${deal.includes('壽星') ? 'bg-red-50 text-red-700 border border-red-100' : 'bg-orange-50 text-orange-700 border border-orange-100'} `}>
                                         {deal.includes('壽星') ? <Cake size={16} /> : <Tag size={16} />}
                                         {deal}
                                     </div>

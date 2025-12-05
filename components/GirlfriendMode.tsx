@@ -1,4 +1,4 @@
-import { useState, useMemo, useEffect } from 'react';
+import { useState, useMemo } from 'react';
 import { Restaurant } from '@/lib/data';
 import { Heart, ArrowRight, RefreshCw } from 'lucide-react';
 
@@ -8,28 +8,31 @@ interface GirlfriendModeProps {
 }
 
 export function GirlfriendMode({ restaurants, onSelect }: GirlfriendModeProps) {
-    const [shuffledChoices, setShuffledChoices] = useState<Restaurant[]>([]);
-
     // Filter for good atmosphere or dessert
-    // Initial shuffle - ensure it runs only when restaurants change
-    useEffect(() => {
-        if (restaurants.length > 0) {
-            handleShuffle();
-        }
-    }, [restaurants]);
+    const [seed, setSeed] = useState(0);
 
-    const handleShuffle = () => {
+    const shuffledChoices = useMemo(() => {
         // Filter first
         const safe = restaurants.filter(r =>
-            r.atmosphere.includes('浪漫') ||
-            r.atmosphere.includes('安靜') ||
-            r.type === '甜點' ||
-            r.rating >= 4.0 // Also include high rated places
+            r.rating >= 4.0 &&
+            r.user_ratings_total >= 50
         );
 
-        // Then shuffle
-        const shuffled = [...safe].sort(() => 0.5 - Math.random());
-        setShuffledChoices(shuffled.slice(0, 4));
+        // Fisher-Yates shuffle
+        const shuffled = [...safe];
+        // Use seed in shuffle (though Math.random is sufficient, triggering re-run is key)
+        for (let i = shuffled.length - 1; i > 0; i--) {
+            // eslint-disable-next-line react-hooks/purity
+            const j = Math.floor(Math.random() * (i + 1));
+            [shuffled[i], shuffled[j]] = [shuffled[j], shuffled[i]];
+        }
+
+        return shuffled.slice(0, 4);
+        // eslint-disable-next-line react-hooks/exhaustive-deps
+    }, [restaurants, seed]);
+
+    const handleShuffle = () => {
+        setSeed(prev => prev + 1);
     };
 
     return (

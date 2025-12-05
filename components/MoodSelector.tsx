@@ -1,17 +1,19 @@
 'use client';
 
-import { Zap, Heart, Wallet, Salad, Beer } from 'lucide-react';
+import { Beer, Heart, Zap, Wallet, Salad } from 'lucide-react';
+import { ElementType } from 'react';
 
 export interface MoodFilters {
-    priceLevel?: number; // 1-4
+    priceLevel?: number; // 0-4
     openNow?: boolean;
-    // can add more later
+    radius?: number;
+    cuisines?: string[];
 }
 
 interface MoodOption {
     id: string;
     label: string;
-    icon: any;
+    icon: ElementType;
     color: string;
     prompt: string;
     filters?: MoodFilters; // Specific filters for this mood

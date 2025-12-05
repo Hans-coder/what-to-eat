@@ -24,6 +24,7 @@ export const FilterDrawer = ({ isOpen, onClose, onApply, initialFilters }: Filte
 
     useEffect(() => {
         if (initialFilters) {
+            // eslint-disable-next-line react-hooks/set-state-in-effect
             setPriceLevel(initialFilters.priceLevel);
             setRadius(initialFilters.radius);
             setCuisines(initialFilters.cuisines || []);
@@ -97,8 +98,8 @@ export const FilterDrawer = ({ isOpen, onClose, onApply, initialFilters }: Filte
                                     key={cuisine}
                                     onClick={() => toggleCuisine(cuisine)}
                                     className={`py-2 px-3 rounded-xl text-sm font-medium transition-all ${cuisines.includes(cuisine)
-                                            ? 'bg-orange-500 text-white shadow-md'
-                                            : 'bg-orange-50 text-orange-400 hover:bg-orange-100'
+                                        ? 'bg-orange-500 text-white shadow-md'
+                                        : 'bg-orange-50 text-orange-400 hover:bg-orange-100'
                                         }`}
                                 >
                                     {cuisine}

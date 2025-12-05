@@ -1,12 +1,20 @@
 'use client';
 
-import { motion, useMotionValue, useTransform, useAnimation } from 'framer-motion';
-import { Star, MapPin, Check, X } from 'lucide-react';
+import { motion, useMotionValue, useTransform, useAnimation, PanInfo } from 'framer-motion';
+import { MapPin, Check, X } from 'lucide-react';
 import { SafeImage } from './SafeImage';
 import { useState } from 'react';
 
+interface SwipeCardData {
+    id: string;
+    name: string;
+    rating: number;
+    vicinity: string;
+    photoReference?: string;
+}
+
 export interface SwipeCardProps {
-    data: any;
+    data: SwipeCardData;
     onSwipeLeft: () => void;
     onSwipeRight: () => void;
     imageSrc: string;
@@ -19,7 +27,7 @@ export const SwipeCard = ({ data, onSwipeLeft, onSwipeRight, imageSrc }: SwipeCa
     const opacity = useTransform(x, [-200, -100, 0, 100, 200], [0, 1, 1, 1, 0]);
     const controls = useAnimation();
 
-    const handleDragEnd = async (_: any, info: any) => {
+    const handleDragEnd = async (_: MouseEvent | TouchEvent | PointerEvent, info: PanInfo) => {
         const threshold = 100;
         if (info.offset.x > threshold) {
             setExitX(300);

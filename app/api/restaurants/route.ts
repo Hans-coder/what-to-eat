@@ -1,3 +1,4 @@
+/* eslint-disable @typescript-eslint/no-explicit-any */
 import { NextResponse } from 'next/server';
 import { restaurants as mockRestaurants, generateMockDetails, Restaurant } from '@/lib/data';
 
@@ -86,6 +87,7 @@ export async function GET(request: Request) {
                 name: place.name,
                 rating: place.rating || 0,
                 reviewCount: place.user_ratings_total || 0,
+                user_ratings_total: place.user_ratings_total || 0,
                 distance: distance,
                 imageUrl: imageUrl,
                 isOpen: isOpen, // Default to true if unknown

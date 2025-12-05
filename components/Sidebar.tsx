@@ -18,6 +18,7 @@ export const Sidebar = ({ isOpen, onClose }: SidebarProps) => {
     // Load data when sidebar opens
     useEffect(() => {
         if (isOpen) {
+            // eslint-disable-next-line react-hooks/set-state-in-effect
             setWishlist(getWishlist());
             setEaten(getEatenWithin7Days());
         }
@@ -63,8 +64,8 @@ export const Sidebar = ({ isOpen, onClose }: SidebarProps) => {
                     <button
                         onClick={() => setActiveTab('wishlist')}
                         className={`flex-1 py-3 px-4 font-medium transition-colors ${activeTab === 'wishlist'
-                                ? 'text-orange-500 border-b-2 border-orange-500'
-                                : 'text-gray-400 hover:text-gray-600'
+                            ? 'text-orange-500 border-b-2 border-orange-500'
+                            : 'text-gray-400 hover:text-gray-600'
                             }`}
                     >
                         <div className="flex items-center justify-center gap-2">
@@ -75,8 +76,8 @@ export const Sidebar = ({ isOpen, onClose }: SidebarProps) => {
                     <button
                         onClick={() => setActiveTab('eaten')}
                         className={`flex-1 py-3 px-4 font-medium transition-colors ${activeTab === 'eaten'
-                                ? 'text-orange-500 border-b-2 border-orange-500'
-                                : 'text-gray-400 hover:text-gray-600'
+                            ? 'text-orange-500 border-b-2 border-orange-500'
+                            : 'text-gray-400 hover:text-gray-600'
                             }`}
                     >
                         <div className="flex items-center justify-center gap-2">
@@ -153,7 +154,7 @@ export const Sidebar = ({ isOpen, onClose }: SidebarProps) => {
                                             <p className="text-xs text-gray-500 mb-2 line-clamp-1">{restaurant.vicinity}</p>
                                             <div className="flex items-center justify-between">
                                                 <span className="text-xs text-gray-400">
-                                                    {Math.ceil((Date.now() - restaurant.addedAt) / (1000 * 60 * 60 * 24))} 天前
+                                                    {Math.ceil((new Date().getTime() - restaurant.addedAt) / (1000 * 60 * 60 * 24))} 天前
                                                 </span>
                                                 <button
                                                     onClick={() => handleRemoveEaten(restaurant.id)}

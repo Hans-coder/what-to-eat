@@ -1,5 +1,3 @@
-import { Utensils, Coffee, Pizza, IceCream, Beer } from 'lucide-react';
-
 export type PriceLevel = '$' | '$$' | '$$$' | '$$$$';
 export type Category = '早餐' | '午餐' | '晚餐' | '點心' | '甜點';
 
@@ -17,6 +15,7 @@ export interface Restaurant {
     cuisine: string;
     priceLevel: PriceLevel;
     rating: number;
+    user_ratings_total: number;
     reviewCount: number;
     distance: number; // in meters
     mustTry: string[];
@@ -134,6 +133,7 @@ export const restaurants: Restaurant[] = [
         priceLevel: '$$',
         rating: 4.5,
         reviewCount: 120,
+        user_ratings_total: 120,
         distance: 300,
         mustTry: ['班尼迪克蛋', '酪梨吐司'],
         waitTime: 15,
@@ -165,6 +165,7 @@ export const restaurants: Restaurant[] = [
         priceLevel: '$$',
         rating: 4.8,
         reviewCount: 850,
+        user_ratings_total: 850,
         distance: 1200,
         mustTry: ['豚骨拉麵', '日式煎餃'],
         waitTime: 45,
@@ -196,6 +197,7 @@ export const restaurants: Restaurant[] = [
         priceLevel: '$',
         rating: 4.6,
         reviewCount: 200,
+        user_ratings_total: 200,
         distance: 500,
         mustTry: ['草莓蛋糕', '抹茶拿鐵'],
         waitTime: 0,
@@ -226,6 +228,7 @@ export const restaurants: Restaurant[] = [
         priceLevel: '$',
         rating: 4.2,
         reviewCount: 500,
+        user_ratings_total: 500,
         distance: 800,
         mustTry: ['雙層起司堡', '洋蔥圈'],
         waitTime: 10,
@@ -256,6 +259,7 @@ export const restaurants: Restaurant[] = [
         priceLevel: '$$$$',
         rating: 4.9,
         reviewCount: 150,
+        user_ratings_total: 150,
         distance: 2500,
         mustTry: ['油封鴨腿', '法式焗蝸牛'],
         waitTime: 0,
@@ -287,6 +291,7 @@ export const restaurants: Restaurant[] = [
         priceLevel: '$$$',
         rating: 4.4,
         reviewCount: 300,
+        user_ratings_total: 300,
         distance: 1500,
         mustTry: ['麻婆豆腐', '宮保雞丁'],
         waitTime: 30,
@@ -318,6 +323,7 @@ export const restaurants: Restaurant[] = [
         priceLevel: '$',
         rating: 4.3,
         reviewCount: 80,
+        user_ratings_total: 80,
         distance: 100,
         mustTry: ['冷萃咖啡', '貝果'],
         waitTime: 5,
@@ -348,6 +354,7 @@ export const restaurants: Restaurant[] = [
         priceLevel: '$',
         rating: 4.7,
         reviewCount: 220,
+        user_ratings_total: 220,
         distance: 600,
         mustTry: ['牛肉塔可', '玉米片'],
         waitTime: 10,
